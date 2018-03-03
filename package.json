@@ -1,0 +1,28 @@
+{
+  "name": "aono",
+  "version": "0.1.0",
+  "description": "asynchronous logger for node with back-pressure capability",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mchalapuk/aono.git"
+  },
+  "keywords": [
+    "node",
+    "logger",
+    "log",
+    "logging",
+    "async",
+    "asynchronous",
+    "backpressure"
+  ],
+  "author": "Maciej Chałapuk <maciej@chalapuk.pl>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/mchalapuk/aono/issues"
+  },
+  "homepage": "https://github.com/mchalapuk/aono#readme"
+}
