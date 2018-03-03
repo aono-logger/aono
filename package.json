@@ -6,7 +6,7 @@
   "scripts": {
     "clean": "rm -rf lib #",
     "compile-ts": "tsc",
-    "compile-coffee": "coffee -c -m -o lib src",
+    "compile-coffee": "coffee -c -o lib src",
     "compile": "npm run compile-ts && npm run compile-coffee",
     "test": "mocha --use_strict lib/mocha.config.js $(find lib -name \"*.spec.js\")",
     "copy-package.json": "mkdir -p lib/ && cp package.json lib/",
