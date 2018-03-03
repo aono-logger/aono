@@ -24,7 +24,14 @@ export class Logger<Level> extends EventEmitter {
     });
   }
 
-  // just to add some type-safety
+  // EventEmitter methods are redeclared to add type-safety.
+
+  on(eventName : 'log', listener : (entry : Entry) => void) : this {
+    return super.on(eventName as string, listener);
+  }
+  removeListener(eventName : 'log', listener : (entry : Entry) => void) : this {
+    return super.removeListener(eventName as string, listener);
+  }
   emit(eventName : 'log', entry : Entry) : boolean {
     return super.emit(eventName as string, entry);
   }
