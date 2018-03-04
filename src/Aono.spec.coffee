@@ -5,6 +5,8 @@ FakePromise = require "fake-promise"
 Aono = require "./Aono"
   .default
 
+TEST_HIGH_WATERMARK = 2
+
 describe "Aono", ->
   mocks =
     timeProvider: sinon.stub()
@@ -12,14 +14,16 @@ describe "Aono", ->
     handler1: sinon.stub()
     writeListener: sinon.spy()
     errorListener: sinon.spy()
+    pressureListener: sinon.spy()
 
   testedFactory = null
   logger = null
 
   beforeEach ->
-    testedFactory = new Aono mocks.timeProvider
+    testedFactory = new Aono mocks.timeProvider, TEST_HIGH_WATERMARK
     testedFactory.on "write", mocks.writeListener
     testedFactory.on "error", mocks.errorListener
+    testedFactory.on "pressure", mocks.pressureListener
     logger = testedFactory.getLogger "test"
   afterEach ->
     mocks.timeProvider.resetHistory()
@@ -30,6 +34,7 @@ describe "Aono", ->
     mocks.handler1.resetBehavior()
     mocks.writeListener.resetHistory()
     mocks.errorListener.resetHistory()
+    mocks.pressureListener.resetHistory()
 
   describe "given no handlers", ->
     it "logs without any problem", ->
@@ -80,8 +85,11 @@ describe "Aono", ->
           logger.log "debug", "second entry"
           logger.log "warn", "entry", number: "three"
 
-        it "does not pass second log entry to the handler", ->
+        it "does not pass second and third log entry to the handler", ->
           mocks.handler0.should.have.callCount 0
+        it "emits \'pressure\' with proper writeId", ->
+          mocks.pressureListener.should.have.callCount 1
+            .and.have.been.calledWith 0
 
         describe "and after first write successfully ends", ->
           promise1 = null
@@ -104,7 +112,6 @@ describe "Aono", ->
                 message: "first entry"
                 meta: {}
               ]
-
           it "passes second and third log to the handler", ->
             mocks.handler0.should.have.callCount 1
               .and.have.been.calledWith [{
@@ -145,9 +152,30 @@ describe "Aono", ->
                   message: "entry"
                   meta: number: "three"
                 }]
-
             it "does not pass anything to the handler", ->
               mocks.handler0.should.have.callCount 0
+
+          describe "and after fourth and fifth log entry", ->
+            beforeEach ->
+              mocks.timeProvider
+                .resetHistory()
+                .resetBehavior()
+              mocks.timeProvider.onCall 0
+                .returns 444444
+              mocks.timeProvider.onCall 1
+                .returns 555555
+
+              mocks.handler0.resetHistory()
+              mocks.pressureListener.resetHistory()
+
+              logger.log "doomsday", "message"
+              logger.log "salvation", "all will be fine"
+
+            it "does not pass fouth and fifth log entry to the handler", ->
+              mocks.handler0.should.have.callCount 0
+            it "emits \'pressure\' with proper writeId", ->
+              mocks.pressureListener.should.have.callCount 1
+                .and.have.been.calledWith 1
 
       describe "and after first write successfully ends", ->
         promise1 = null
