@@ -20,6 +20,7 @@ export declare class Aono<Level> extends EventEmitter {
     private beginNextWrite();
     private onWriteSuccess();
     private onWriteError(error);
+    private hasPending();
     private isWriting();
     private isErrored();
 }

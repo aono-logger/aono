@@ -35,10 +35,12 @@ export class Aono<Level> extends EventEmitter {
     this.handler = handler;
     return this;
   }
+
   getLogger(name : string) : Logger<Level> {
     return new Logger<Level>(this.timeProvider, name).on('log', this.onLogEntry);
   }
-  retry() {
+
+  retry() : void {
     if (!this.isErrored()) {
       throw new Error('.retry() must be called only after emitting \'error\'');
     }
@@ -68,23 +70,23 @@ export class Aono<Level> extends EventEmitter {
   private onWriteSuccess() {
     this.emit('write', takeAll(this.handledEntries));
 
-    if (this.pendingEntries.length === 0) {
+    if (!this.hasPending()) {
       return;
     }
-
     this.handledEntries = takeAll(this.pendingEntries);
     this.beginNextWrite();
   }
-
   private onWriteError(error : any) {
     this.erroredEntries = takeAll(this.handledEntries);
     this.emit('error', error, copy(this.erroredEntries));
   }
 
+  private hasPending() {
+    return this.pendingEntries.length !== 0;
+  }
   private isWriting() {
     return this.handledEntries.length !== 0;
   }
-
   private isErrored() {
     return this.erroredEntries.length !== 0;
   }
