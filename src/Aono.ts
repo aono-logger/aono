@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 
 import Logger from './Logger';
 import Handler from './Handler';
@@ -7,15 +8,21 @@ import TimeProvider from './TimeProvider';
 /**
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
-export class Aono<Level> {
+export class Aono<Level> extends EventEmitter {
   private handler : Handler | null = null;
-  private pendingEntries : Entry[] = [];
 
-  private state : 'idle' | 'writing'  = 'idle';
+  // New entries queued for next write
+  private pendingEntries : Entry[] = [];
+  // Entries currently being written
+  private handledEntries : Entry[] = [];
+  // Entries from last failed write
+  private erroredEntries : Entry[] = [];
 
   constructor(
     private timeProvider : TimeProvider,
   ) {
+    super();
+
     this.onLogEntry = this.onLogEntry.bind(this);
     this.onWriteSuccess = this.onWriteSuccess.bind(this);
     this.onWriteError = this.onWriteError.bind(this);
@@ -31,38 +38,65 @@ export class Aono<Level> {
   getLogger(name : string) : Logger<Level> {
     return new Logger<Level>(this.timeProvider, name).on('log', this.onLogEntry);
   }
+  retry() {
+    if (!this.isErrored()) {
+      throw new Error('.retry() must be called only after emitting \'error\'');
+    }
+    this.handledEntries = takeAll(this.erroredEntries);
+    this.beginNextWrite();
+  }
 
   private onLogEntry(entry : Entry) {
     this.pendingEntries.push(entry);
 
-    if (this.handler === null || this.state === 'writing') {
+    if (this.handler === null || this.isWriting() || this.isErrored()) {
       return;
     }
-    this.state = 'writing';
+    this.handledEntries = takeAll(this.pendingEntries);
     this.beginNextWrite();
   }
 
   private beginNextWrite() {
     const write = this.handler as Handler;
-    const entries = this.pendingEntries.splice(0, this.pendingEntries.length);
 
-    write(entries)
+    write(this.handledEntries)
       .then(this.onWriteSuccess)
       .catch(this.onWriteError)
     ;
   }
 
   private onWriteSuccess() {
-    if (this.pendingEntries.length !== 0) {
-      this.beginNextWrite();
+    this.handledEntries = [];
+
+    if (this.pendingEntries.length === 0) {
       return;
     }
-    this.state = 'idle';
+
+    this.handledEntries = takeAll(this.pendingEntries);
+    this.beginNextWrite();
   }
 
-  private onWriteError(err : any) {
+  private onWriteError(error : any) {
+    this.erroredEntries = takeAll(this.handledEntries);
+    this.emit('error', error, copy(this.erroredEntries));
+  }
+
+  private isWriting() {
+    return this.handledEntries.length !== 0;
+  }
+
+  private isErrored() {
+    return this.erroredEntries.length !== 0;
   }
 }
 
 export default Aono;
+
+function takeAll(entries : Entry[]) {
+  return entries.splice(0, entries.length);
+}
+
+function copy(entries : Entry[]) {
+  return entries.concat([]);
+}
 

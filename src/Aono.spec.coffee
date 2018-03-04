@@ -10,6 +10,7 @@ describe "Aono", ->
     timeProvider: sinon.stub()
     handler0: sinon.stub()
     handler1: sinon.stub()
+    errorListener: sinon.spy()
 
   testedFactory = null
   logger = null
@@ -24,6 +25,7 @@ describe "Aono", ->
     mocks.handler0.resetBehavior()
     mocks.handler1.resetHistory()
     mocks.handler1.resetBehavior()
+    mocks.errorListener.resetHistory()
 
   describe "given no handlers", ->
     it "logs without any problem", ->
@@ -32,6 +34,11 @@ describe "Aono", ->
   describe "given single handler", ->
     beforeEach ->
       testedFactory.addHandler mocks.handler0
+
+    describe "before any log entries", ->
+      it "calling .retry throws", ->
+        () -> testedFactory.retry()
+          .should.throw ".retry() must be called only after emitting 'error'"
 
     describe "when after first log entry", ->
       promise0 = null
@@ -72,7 +79,7 @@ describe "Aono", ->
         it "does not pass second log entry to the handler", ->
           mocks.handler0.should.have.callCount 0
 
-        describe "and after first write ends", ->
+        describe "and after first write successfully ends", ->
           promise1 = null
 
           beforeEach ->
@@ -100,7 +107,7 @@ describe "Aono", ->
                 meta: number: "three"
               }]
 
-      describe "and after first write ends", ->
+      describe "and after first write successfully ends", ->
         promise1 = null
 
         beforeEach ->
@@ -111,6 +118,10 @@ describe "Aono", ->
           promise0.setResult undefined
             .resolve()
           undefined # not returning the promise
+
+        it "calling .retry throws", ->
+          () -> testedFactory.retry()
+            .should.throw ".retry() must be called only after emitting 'error'"
 
         describe "and after second log entry", ->
           beforeEach ->
@@ -132,4 +143,61 @@ describe "Aono", ->
                 message: "entry"
                 meta: number: "two"
               ]
+
+      describe "and after first write fails", ->
+        error = new Error "something went wrong"
+
+        beforeEach ->
+          testedFactory.on "error", mocks.errorListener
+
+          promise0
+            .reject error
+            .reject()
+          undefined # not returning the promise
+
+        it "emits the error", ->
+          mocks.errorListener.should.have.callCount 1
+            .and.have.been.calledWith error, [
+              timestamp: 12345
+              logger: "test"
+              level: "info"
+              message: "first entry"
+              meta: {}
+            ]
+
+        describe "and after second log entry", ->
+          beforeEach ->
+            mocks.timeProvider
+              .resetHistory()
+              .resetBehavior()
+            mocks.timeProvider.returns 98765
+
+            mocks.handler0.resetHistory()
+
+            logger.log "debug", "entry", number: "two"
+
+          it "does not pass second log entry to the handler", ->
+            mocks.handler0.should.have.callCount 0
+
+          describe "and after calling .retry", ->
+            promise1 = null
+
+            beforeEach ->
+              mocks.handler0.resetHistory()
+              mocks.handler0.resetBehavior()
+
+              promise1 = new FakePromise
+              mocks.handler0.returns promise1
+
+              testedFactory.retry()
+
+            it "immediately passes the first log entry to the handler", ->
+              mocks.handler0.should.have.callCount 1
+                .and.have.been.calledWith [
+                  timestamp: 12345
+                  logger: "test"
+                  level: "info"
+                  message: "first entry"
+                  meta: {}
+                ]
 
