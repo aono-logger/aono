@@ -8,11 +8,13 @@ import TimeProvider from './TimeProvider';
  */
 export declare class Aono<Level> extends EventEmitter {
     private timeProvider;
+    private highWaterMark;
     private handler;
     private pendingEntries;
     private handledEntries;
     private erroredEntries;
-    constructor(timeProvider: TimeProvider);
+    private writeId;
+    constructor(timeProvider: TimeProvider, highWaterMark?: number);
     addHandler(handler: Handler): this;
     getLogger(name: string): Logger<Level>;
     retry(): void;
@@ -23,5 +25,6 @@ export declare class Aono<Level> extends EventEmitter {
     private hasPending();
     private isWriting();
     private isErrored();
+    private isAtWatermark();
 }
 export default Aono;

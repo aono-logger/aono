@@ -5,6 +5,8 @@ import Handler from './Handler';
 import Entry from './Entry';
 import TimeProvider from './TimeProvider';
 
+const DEFAULT_HIGH_WATERMARK = 256;
+
 /**
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
@@ -18,8 +20,13 @@ export class Aono<Level> extends EventEmitter {
   // Entries from last failed write
   private erroredEntries : Entry[] = [];
 
+  // Incremented each time handler is invoked and sent as argument in 'pressure' event.
+  // Can be used to identify consecutive back pressures in client code of this Aono instance.
+  private writeId = -1;
+
   constructor(
     private timeProvider : TimeProvider,
+    private highWaterMark : number = DEFAULT_HIGH_WATERMARK,
   ) {
     super();
 
@@ -51,6 +58,9 @@ export class Aono<Level> extends EventEmitter {
   private onLogEntry(entry : Entry) {
     this.pendingEntries.push(entry);
 
+    if (this.isAtWatermark()) {
+      this.emit('pressure', this.writeId);
+    }
     if (this.handler === null || this.isWriting() || this.isErrored()) {
       return;
     }
@@ -60,6 +70,8 @@ export class Aono<Level> extends EventEmitter {
 
   private beginNextWrite() {
     const write = this.handler as Handler;
+
+    this.writeId += 1;
 
     write(this.handledEntries)
       .then(this.onWriteSuccess)
@@ -89,6 +101,9 @@ export class Aono<Level> extends EventEmitter {
   }
   private isErrored() {
     return this.erroredEntries.length !== 0;
+  }
+  private isAtWatermark() {
+    return this.pendingEntries.length === this.highWaterMark;
   }
 }
 
