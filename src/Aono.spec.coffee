@@ -10,6 +10,7 @@ describe "Aono", ->
     timeProvider: sinon.stub()
     handler0: sinon.stub()
     handler1: sinon.stub()
+    writeListener: sinon.spy()
     errorListener: sinon.spy()
 
   testedFactory = null
@@ -17,6 +18,8 @@ describe "Aono", ->
 
   beforeEach ->
     testedFactory = new Aono mocks.timeProvider
+    testedFactory.on "write", mocks.writeListener
+    testedFactory.on "error", mocks.errorListener
     logger = testedFactory.getLogger "test"
   afterEach ->
     mocks.timeProvider.resetHistory()
@@ -25,6 +28,7 @@ describe "Aono", ->
     mocks.handler0.resetBehavior()
     mocks.handler1.resetHistory()
     mocks.handler1.resetBehavior()
+    mocks.writeListener.resetHistory()
     mocks.errorListener.resetHistory()
 
   describe "given no handlers", ->
@@ -91,6 +95,16 @@ describe "Aono", ->
               .resolve()
             undefined # not returning the promise
 
+          it "emits 'write' with first log entry", ->
+            mocks.writeListener.should.have.callCount 1
+              .and.have.been.calledWith [
+                timestamp: 12345
+                logger: "test"
+                level: "info"
+                message: "first entry"
+                meta: {}
+              ]
+
           it "passes second and third log to the handler", ->
             mocks.handler0.should.have.callCount 1
               .and.have.been.calledWith [{
@@ -106,6 +120,34 @@ describe "Aono", ->
                 message: "entry"
                 meta: number: "three"
               }]
+
+          describe "and after second write successfully ends", ->
+            beforeEach ->
+              mocks.handler0.resetHistory()
+              mocks.writeListener.resetHistory()
+
+              promise1.setResult undefined
+                .resolve()
+              undefined # not returning the promise
+
+            it "emits 'write' with second and third log entry", ->
+              mocks.writeListener.should.have.callCount 1
+                .and.have.been.calledWith [{
+                  timestamp: 98765
+                  logger: "test"
+                  level: "debug"
+                  message: "second entry"
+                  meta: {}
+                }, {
+                  timestamp: 111111
+                  logger: "test"
+                  level: "warn"
+                  message: "entry"
+                  meta: number: "three"
+                }]
+
+            it "does not pass anything to the handler", ->
+              mocks.handler0.should.have.callCount 0
 
       describe "and after first write successfully ends", ->
         promise1 = null
@@ -148,8 +190,6 @@ describe "Aono", ->
         error = new Error "something went wrong"
 
         beforeEach ->
-          testedFactory.on "error", mocks.errorListener
-
           promise0
             .reject error
             .reject()

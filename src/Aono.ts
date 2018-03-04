@@ -66,7 +66,7 @@ export class Aono<Level> extends EventEmitter {
   }
 
   private onWriteSuccess() {
-    this.handledEntries = [];
+    this.emit('write', takeAll(this.handledEntries));
 
     if (this.pendingEntries.length === 0) {
       return;
