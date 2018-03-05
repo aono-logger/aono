@@ -1,3 +1,5 @@
+<img src="https://aono-logger.github.io/media/logo.svg" align=left valign=top height=148>
+
 # aono
 
 [![Build Status][travis-image]][travis-url]
