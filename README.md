@@ -1,4 +1,4 @@
-<img src="https://aono-logger.github.io/media/logo.svg" align=left valign=top height=164>
+<img src="https://aono-logger.github.io/media/logo.svg" align=left valign=top height=172>
 
 # aono
 
