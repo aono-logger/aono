@@ -1,6 +1,6 @@
 {
   "name": "aono",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "asynchronous logger for node with back-pressure capability",
   "main": "index.js",
   "scripts": {
@@ -32,18 +32,18 @@
   "author": "Maciej Chałapuk <maciej@chalapuk.pl>",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/mchalapuk/aono/issues"
+    "url": "https://github.com/aono-logger/aono/issues"
   },
-  "homepage": "https://github.com/mchalapuk/aono#readme",
+  "homepage": "https://github.com/aono-logger/aono#readme",
   "dependencies": {},
   "devDependencies": {
-    "@types/node": "^9.4.6",
-    "coffeescript": "^2.2.2",
-    "fake-promise": "^1.1.0",
-    "mocha": "^5.0.1",
+    "@types/node": "^9.6.15",
+    "coffeescript": "^2.3.0",
+    "fake-promise": "^1.3.0",
+    "mocha": "^5.1.1",
     "should": "^13.2.1",
     "should-sinon": "0.0.6",
-    "sinon": "^4.4.2",
-    "typescript": "^2.7.2"
+    "sinon": "^4.5.0",
+    "typescript": "^2.8.3"
   }
 }
