@@ -19,7 +19,7 @@
     "noImplicitThis": true,
     "outDir": "./lib/",
     "strictNullChecks": true,
-    "sourceMap": false,
+    "sourceMap": true,
     "target": "es5",
     "types": [
       "node"
