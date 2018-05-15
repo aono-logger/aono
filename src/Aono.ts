@@ -69,11 +69,11 @@ export class Aono<Level> extends EventEmitter {
   }
 
   private beginNextWrite() {
-    const write = this.handler as Handler;
+    const handler = this.handler as Handler;
 
     this.writeId += 1;
 
-    write(this.handledEntries)
+    handler.handle(this.handledEntries)
       .then(this.onWriteSuccess)
       .catch(this.onWriteError)
     ;

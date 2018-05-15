@@ -10,8 +10,7 @@ TEST_HIGH_WATERMARK = 2
 describe "Aono", ->
   mocks =
     timeProvider: sinon.stub()
-    handler0: sinon.stub()
-    handler1: sinon.stub()
+    handler0: handle: sinon.stub()
     writeListener: sinon.spy()
     errorListener: sinon.spy()
     pressureListener: sinon.spy()
@@ -28,10 +27,8 @@ describe "Aono", ->
   afterEach ->
     mocks.timeProvider.resetHistory()
     mocks.timeProvider.resetBehavior()
-    mocks.handler0.resetHistory()
-    mocks.handler0.resetBehavior()
-    mocks.handler1.resetHistory()
-    mocks.handler1.resetBehavior()
+    mocks.handler0.handle.resetHistory()
+    mocks.handler0.handle.resetBehavior()
     mocks.writeListener.resetHistory()
     mocks.errorListener.resetHistory()
     mocks.pressureListener.resetHistory()
@@ -56,12 +53,12 @@ describe "Aono", ->
         mocks.timeProvider.returns 12345
 
         promise0 = new FakePromise
-        mocks.handler0.returns promise0
+        mocks.handler0.handle.returns promise0
 
         logger.log "info", "first entry"
 
       it "immediately passes proper log entry to the handler", ->
-        mocks.handler0.should.have.callCount 1
+        mocks.handler0.handle.should.have.callCount 1
           .and.have.been.calledWith [
             timestamp: 12345
             logger: "test"
@@ -80,13 +77,13 @@ describe "Aono", ->
           mocks.timeProvider.onCall 1
             .returns 111111
 
-          mocks.handler0.resetHistory()
+          mocks.handler0.handle.resetHistory()
 
           logger.log "debug", "second entry"
           logger.log "warn", "entry", number: "three"
 
         it "does not pass second and third log entry to the handler", ->
-          mocks.handler0.should.have.callCount 0
+          mocks.handler0.handle.should.have.callCount 0
         it "emits \'pressure\' with proper writeId", ->
           mocks.pressureListener.should.have.callCount 1
             .and.have.been.calledWith 0
@@ -95,9 +92,9 @@ describe "Aono", ->
           promise1 = null
 
           beforeEach ->
-            mocks.handler0.resetBehavior()
+            mocks.handler0.handle.resetBehavior()
             promise1 = new FakePromise
-            mocks.handler0.returns promise1
+            mocks.handler0.handle.returns promise1
 
             promise0.setResult undefined
               .resolve()
@@ -113,7 +110,7 @@ describe "Aono", ->
                 meta: {}
               ]
           it "passes second and third log to the handler", ->
-            mocks.handler0.should.have.callCount 1
+            mocks.handler0.handle.should.have.callCount 1
               .and.have.been.calledWith [{
                 timestamp: 98765
                 logger: "test"
@@ -130,7 +127,7 @@ describe "Aono", ->
 
           describe "and after second write successfully ends", ->
             beforeEach ->
-              mocks.handler0.resetHistory()
+              mocks.handler0.handle.resetHistory()
               mocks.writeListener.resetHistory()
 
               promise1.setResult undefined
@@ -153,7 +150,7 @@ describe "Aono", ->
                   meta: number: "three"
                 }]
             it "does not pass anything to the handler", ->
-              mocks.handler0.should.have.callCount 0
+              mocks.handler0.handle.should.have.callCount 0
 
           describe "and after fourth and fifth log entry", ->
             beforeEach ->
@@ -165,14 +162,14 @@ describe "Aono", ->
               mocks.timeProvider.onCall 1
                 .returns 555555
 
-              mocks.handler0.resetHistory()
+              mocks.handler0.handle.resetHistory()
               mocks.pressureListener.resetHistory()
 
               logger.log "doomsday", "message"
               logger.log "salvation", "all will be fine"
 
             it "does not pass fouth and fifth log entry to the handler", ->
-              mocks.handler0.should.have.callCount 0
+              mocks.handler0.handle.should.have.callCount 0
             it "emits \'pressure\' with proper writeId", ->
               mocks.pressureListener.should.have.callCount 1
                 .and.have.been.calledWith 1
@@ -181,9 +178,9 @@ describe "Aono", ->
         promise1 = null
 
         beforeEach ->
-          mocks.handler0.resetBehavior()
+          mocks.handler0.handle.resetBehavior()
           promise1 = new FakePromise
-          mocks.handler0.returns promise1
+          mocks.handler0.handle.returns promise1
 
           promise0.setResult undefined
             .resolve()
@@ -200,12 +197,12 @@ describe "Aono", ->
               .resetBehavior()
             mocks.timeProvider.returns 98765
 
-            mocks.handler0.resetHistory()
+            mocks.handler0.handle.resetHistory()
 
             logger.log "debug", "entry", number: "two"
 
           it "immediately passes second log entry to the handler", ->
-            mocks.handler0.should.have.callCount 1
+            mocks.handler0.handle.should.have.callCount 1
               .and.have.been.calledWith [
                 timestamp: 98765
                 logger: "test"
@@ -240,27 +237,27 @@ describe "Aono", ->
               .resetBehavior()
             mocks.timeProvider.returns 98765
 
-            mocks.handler0.resetHistory()
+            mocks.handler0.handle.resetHistory()
 
             logger.log "debug", "entry", number: "two"
 
           it "does not pass second log entry to the handler", ->
-            mocks.handler0.should.have.callCount 0
+            mocks.handler0.handle.should.have.callCount 0
 
           describe "and after calling .retry", ->
             promise1 = null
 
             beforeEach ->
-              mocks.handler0.resetHistory()
-              mocks.handler0.resetBehavior()
+              mocks.handler0.handle.resetHistory()
+              mocks.handler0.handle.resetBehavior()
 
               promise1 = new FakePromise
-              mocks.handler0.returns promise1
+              mocks.handler0.handle.returns promise1
 
               testedFactory.retry()
 
             it "immediately passes the first log entry to the handler", ->
-              mocks.handler0.should.have.callCount 1
+              mocks.handler0.handle.should.have.callCount 1
                 .and.have.been.calledWith [
                   timestamp: 12345
                   logger: "test"
