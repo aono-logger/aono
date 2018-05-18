@@ -6,6 +6,6 @@ export interface Entry {
     logger: string;
     level: string;
     message: string;
-    meta: Object;
+    meta: any;
 }
 export default Entry;
