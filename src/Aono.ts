@@ -56,7 +56,7 @@ export class Aono<Level> extends EventEmitter {
   }
 
   private onLogEntry(entry : Entry) {
-    this.pendingEntries.push(entry);
+    this.pendingEntries.push(this.preprocess(entry));
 
     if (this.isAtWatermark()) {
       this.emit('pressure', this.writeId);
@@ -66,6 +66,18 @@ export class Aono<Level> extends EventEmitter {
     }
     this.handledEntries = takeAll(this.pendingEntries);
     this.beginNextWrite();
+  }
+
+  private preprocess(entry : Entry) : Entry {
+    const processed = { ...entry, meta: { ...entry.meta } };
+    if (entry.meta.name && entry.meta.message && entry.meta.stack) {
+      // An error was passed as meta param.
+      // It's better to convert it to a stacktrace.
+      processed.meta = {
+        stacktrace: entry.meta.stack.split('\n'),
+      };
+    }
+    return processed;
   }
 
   private beginNextWrite() {

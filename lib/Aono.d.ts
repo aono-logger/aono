@@ -19,6 +19,7 @@ export declare class Aono<Level> extends EventEmitter {
     getLogger(name: string): Logger<Level>;
     retry(): void;
     private onLogEntry(entry);
+    private preprocess(entry);
     private beginNextWrite();
     private onWriteSuccess();
     private onWriteError(error);

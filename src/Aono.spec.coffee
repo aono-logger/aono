@@ -266,3 +266,33 @@ describe "Aono", ->
                   meta: {}
                 ]
 
+    describe "when after log entry containing error as meta", ->
+      promise0 = null
+      fakeError =
+        name: "TestError"
+        message: "error"
+        stack: "a\nb\nc"
+
+      beforeEach ->
+        mocks.timeProvider.returns 12345
+
+        promise0 = new FakePromise
+        mocks.handler0.handle.returns promise0
+
+        logger.log "error", "error", fakeError
+
+      it "passes entry with preprocessed error to handler", ->
+        mocks.handler0.handle.should.have.callCount 1
+          .and.have.been.calledWith [
+            timestamp: 12345
+            logger: "test"
+            level: "error"
+            message: "error"
+            meta:
+              stacktrace: [
+                "a"
+                "b"
+                "c"
+              ]
+          ]
+
