@@ -11,27 +11,33 @@ describe "Aono", ->
   mocks =
     timeProvider: sinon.stub()
     handler0: handle: sinon.stub()
+    pendingListener: sinon.spy()
     writeListener: sinon.spy()
     errorListener: sinon.spy()
     pressureListener: sinon.spy()
+    syncListener: sinon.spy()
 
   testedFactory = null
   logger = null
 
   beforeEach ->
     testedFactory = new Aono mocks.timeProvider, TEST_HIGH_WATERMARK
+    testedFactory.on "pending", mocks.pendingListener
     testedFactory.on "write", mocks.writeListener
     testedFactory.on "error", mocks.errorListener
     testedFactory.on "pressure", mocks.pressureListener
+    testedFactory.on "sync", mocks.syncListener
     logger = testedFactory.getLogger "test"
   afterEach ->
     mocks.timeProvider.resetHistory()
     mocks.timeProvider.resetBehavior()
     mocks.handler0.handle.resetHistory()
     mocks.handler0.handle.resetBehavior()
+    mocks.pendingListener.resetHistory()
     mocks.writeListener.resetHistory()
     mocks.errorListener.resetHistory()
     mocks.pressureListener.resetHistory()
+    mocks.syncListener.resetHistory()
 
   describe "given no handlers", ->
     it "logs without any problem", ->
@@ -42,6 +48,8 @@ describe "Aono", ->
       testedFactory.addHandler mocks.handler0
 
     describe "before any log entries", ->
+      it "is synced", ->
+        testedFactory.isSynced().should.equal true
       it "calling .retry throws", ->
         () -> testedFactory.retry()
           .should.throw ".retry() must be called only after emitting 'error'"
@@ -56,6 +64,15 @@ describe "Aono", ->
         mocks.handler0.handle.returns promise0
 
         logger.log "info", "first entry"
+
+      it "is not synced", ->
+        testedFactory.isSynced().should.equal false
+      it "emits 'pending'", ->
+        mocks.pendingListener.should.have.callCount 1
+      it "does not emit 'sync'", ->
+        mocks.syncListener.should.have.callCount 0
+      it "is not synced", ->
+        testedFactory.isSynced().should.equal false
 
       it "immediately passes proper log entry to the handler", ->
         mocks.handler0.handle.should.have.callCount 1
@@ -78,10 +95,17 @@ describe "Aono", ->
             .returns 111111
 
           mocks.handler0.handle.resetHistory()
+          mocks.pendingListener.resetHistory()
 
           logger.log "debug", "second entry"
           logger.log "warn", "entry", number: "three"
 
+        it "is not synced", ->
+          testedFactory.isSynced().should.equal false
+        it "does not emit second 'pending'", ->
+          mocks.pendingListener.should.have.callCount 0
+        it "does not emit 'sync'", ->
+          mocks.syncListener.should.have.callCount 0
         it "does not pass second and third log entry to the handler", ->
           mocks.handler0.handle.should.have.callCount 0
         it "emits \'pressure\' with proper writeId", ->
@@ -100,6 +124,12 @@ describe "Aono", ->
               .resolve()
             undefined # not returning the promise
 
+          it "is not synced", ->
+            testedFactory.isSynced().should.equal false
+          it "does not emit second 'pending'", ->
+            mocks.pendingListener.should.have.callCount 0
+          it "does not emit 'sync'", ->
+            mocks.syncListener.should.have.callCount 0
           it "emits 'write' with first log entry", ->
             mocks.writeListener.should.have.callCount 1
               .and.have.been.calledWith [
@@ -134,6 +164,12 @@ describe "Aono", ->
                 .resolve()
               undefined # not returning the promise
 
+            it "does not emit second 'pending'", ->
+              mocks.pendingListener.should.have.callCount 0
+            it "emits 'sync'", ->
+              mocks.syncListener.should.have.callCount 1
+            it "is synced", ->
+              testedFactory.isSynced().should.equal true
             it "emits 'write' with second and third log entry", ->
               mocks.writeListener.should.have.callCount 1
                 .and.have.been.calledWith [{
@@ -164,10 +200,17 @@ describe "Aono", ->
 
               mocks.handler0.handle.resetHistory()
               mocks.pressureListener.resetHistory()
+              mocks.syncListener.resetHistory()
 
               logger.log "doomsday", "message"
               logger.log "salvation", "all will be fine"
 
+            it "is not synced", ->
+              testedFactory.isSynced().should.equal false
+            it "does not emit 'sync'", ->
+              mocks.syncListener.should.have.callCount 0
+            it "emits 'pending'", ->
+              mocks.pendingListener.should.have.callCount 0
             it "does not pass fouth and fifth log entry to the handler", ->
               mocks.handler0.handle.should.have.callCount 0
             it "emits \'pressure\' with proper writeId", ->
@@ -179,6 +222,8 @@ describe "Aono", ->
 
         beforeEach ->
           mocks.handler0.handle.resetBehavior()
+          mocks.pendingListener.resetHistory()
+
           promise1 = new FakePromise
           mocks.handler0.handle.returns promise1
 
@@ -186,6 +231,12 @@ describe "Aono", ->
             .resolve()
           undefined # not returning the promise
 
+        it "is synced", ->
+          testedFactory.isSynced().should.equal true
+        it "emits 'sync'", ->
+          mocks.syncListener.should.have.callCount 1
+        it "doesnt emit 'pending'", ->
+          mocks.pendingListener.should.have.callCount 0
         it "calling .retry throws", ->
           () -> testedFactory.retry()
             .should.throw ".retry() must be called only after emitting 'error'"
@@ -198,9 +249,16 @@ describe "Aono", ->
             mocks.timeProvider.returns 98765
 
             mocks.handler0.handle.resetHistory()
+            mocks.syncListener.resetHistory()
 
             logger.log "debug", "entry", number: "two"
 
+          it "is not synced", ->
+            testedFactory.isSynced().should.equal false
+          it "doesnt emit 'sync'", ->
+            mocks.syncListener.should.have.callCount 0
+          it "emits 'pending'", ->
+            mocks.pendingListener.should.have.callCount 1
           it "immediately passes second log entry to the handler", ->
             mocks.handler0.handle.should.have.callCount 1
               .and.have.been.calledWith [
@@ -229,6 +287,8 @@ describe "Aono", ->
               message: "first entry"
               meta: {}
             ]
+        it "is not synced", ->
+          testedFactory.isSynced().should.equal false
 
         describe "and after second log entry", ->
           beforeEach ->

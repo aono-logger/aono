@@ -55,7 +55,27 @@ export class Aono<Level> extends EventEmitter {
     this.beginNextWrite();
   }
 
+  isSynced() : boolean {
+    return !this.hasPending() && !this.isWriting() && !this.isErrored();
+  }
+
+  hasPending() {
+    return this.pendingEntries.length !== 0;
+  }
+  isWriting() {
+    return this.handledEntries.length !== 0;
+  }
+  isErrored() {
+    return this.erroredEntries.length !== 0;
+  }
+  isAtWatermark() {
+    return this.pendingEntries.length === this.highWaterMark;
+  }
+
   private onLogEntry(entry : Entry) {
+    if (this.isSynced()) {
+      this.emit('pending');
+    }
     this.pendingEntries.push(this.preprocess(entry));
 
     if (this.isAtWatermark()) {
@@ -95,6 +115,7 @@ export class Aono<Level> extends EventEmitter {
     this.emit('write', takeAll(this.handledEntries));
 
     if (!this.hasPending()) {
+      this.emit('sync');
       return;
     }
     this.handledEntries = takeAll(this.pendingEntries);
@@ -103,19 +124,6 @@ export class Aono<Level> extends EventEmitter {
   private onWriteError(error : any) {
     this.erroredEntries = takeAll(this.handledEntries);
     this.emit('error', error, copy(this.erroredEntries));
-  }
-
-  private hasPending() {
-    return this.pendingEntries.length !== 0;
-  }
-  private isWriting() {
-    return this.handledEntries.length !== 0;
-  }
-  private isErrored() {
-    return this.erroredEntries.length !== 0;
-  }
-  private isAtWatermark() {
-    return this.pendingEntries.length === this.highWaterMark;
   }
 }
 

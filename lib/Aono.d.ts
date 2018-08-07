@@ -18,14 +18,15 @@ export declare class Aono<Level> extends EventEmitter {
     addHandler(handler: Handler): this;
     getLogger(name: string): Logger<Level>;
     retry(): void;
+    isSynced(): boolean;
+    hasPending(): boolean;
+    isWriting(): boolean;
+    isErrored(): boolean;
+    isAtWatermark(): boolean;
     private onLogEntry(entry);
     private preprocess(entry);
     private beginNextWrite();
     private onWriteSuccess();
     private onWriteError(error);
-    private hasPending();
-    private isWriting();
-    private isErrored();
-    private isAtWatermark();
 }
 export default Aono;
