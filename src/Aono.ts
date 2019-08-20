@@ -1,3 +1,4 @@
+
 import { EventEmitter } from 'events';
 
 import Logger from './Logger';
@@ -7,10 +8,13 @@ import TimeProvider from './TimeProvider';
 
 const DEFAULT_HIGH_WATERMARK = 256;
 
+export type EventName = 'pending' | 'pressure' | 'write' | 'sync' | 'error';
+
 /**
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
-export class Aono<Level> extends EventEmitter {
+export class Aono<Level> {
+  private emitter = new EventEmitter();
   private handler : Handler | null = null;
 
   // New entries queued for next write
@@ -28,11 +32,23 @@ export class Aono<Level> extends EventEmitter {
     private timeProvider : TimeProvider,
     private highWaterMark : number = DEFAULT_HIGH_WATERMARK,
   ) {
-    super();
-
     this.onLogEntry = this.onLogEntry.bind(this);
     this.onWriteSuccess = this.onWriteSuccess.bind(this);
     this.onWriteError = this.onWriteError.bind(this);
+  }
+
+  // EventEmitter interface, but typed
+  on(event : EventName, callback : () => void) : this {
+    this.emitter.on(event, callback);
+    return this;
+  }
+  once(event : EventName, callback : () => void) : this {
+    this.emitter.once(event, callback);
+    return this;
+  }
+  removeListener(event : EventName, callback : () => void) : this {
+    this.emitter.removeListener(event, callback);
+    return this;
   }
 
   addHandler(handler : Handler) : this {
@@ -74,12 +90,12 @@ export class Aono<Level> extends EventEmitter {
 
   private onLogEntry(entry : Entry) {
     if (this.isSynced()) {
-      this.emit('pending');
+      this.emitter.emit('pending');
     }
     this.pendingEntries.push(this.preprocess(entry));
 
     if (this.isAtWatermark()) {
-      this.emit('pressure', this.writeId);
+      this.emitter.emit('pressure', this.writeId);
     }
     if (this.handler === null || this.isWriting() || this.isErrored()) {
       return;
@@ -112,10 +128,10 @@ export class Aono<Level> extends EventEmitter {
   }
 
   private onWriteSuccess() {
-    this.emit('write', takeAll(this.handledEntries));
+    this.emitter.emit('write', takeAll(this.handledEntries));
 
     if (!this.hasPending()) {
-      this.emit('sync');
+      this.emitter.emit('sync');
       return;
     }
     this.handledEntries = takeAll(this.pendingEntries);
@@ -123,7 +139,7 @@ export class Aono<Level> extends EventEmitter {
   }
   private onWriteError(error : any) {
     this.erroredEntries = takeAll(this.handledEntries);
-    this.emit('error', error, copy(this.erroredEntries));
+    this.emitter.emit('error', error, copy(this.erroredEntries));
   }
 }
 
