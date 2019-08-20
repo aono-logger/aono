@@ -6,16 +6,17 @@ import TimeProvider from './TimeProvider';
 /**
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
-export class Logger<Level> extends EventEmitter {
+export class Logger<Level> {
+  private readonly emitter = new EventEmitter();
+
   constructor(
     private getTimestamp : TimeProvider,
     private name : string,
   ) {
-    super();
   }
 
   log(level : Level, message : string, meta : Object = {}) {
-    this.emit('log', {
+    this.emitter.emit('log', {
       timestamp: this.getTimestamp(),
       logger: this.name,
       level: level.toString(),
@@ -24,16 +25,15 @@ export class Logger<Level> extends EventEmitter {
     });
   }
 
-  // EventEmitter methods are redeclared to add type-safety.
+  // interface of EventEmitter, but typed
 
   on(eventName : 'log', listener : (entry : Entry) => void) : this {
-    return super.on(eventName as string, listener);
+    this.emitter.on(eventName as string, listener);
+    return this;
   }
   removeListener(eventName : 'log', listener : (entry : Entry) => void) : this {
-    return super.removeListener(eventName as string, listener);
-  }
-  emit(eventName : 'log', entry : Entry) : boolean {
-    return super.emit(eventName as string, entry);
+    this.emitter.removeListener(eventName as string, listener);
+    return this;
   }
 }
 
