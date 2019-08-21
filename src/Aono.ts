@@ -2,7 +2,7 @@
 import { EventEmitter } from 'events';
 
 import Logger from './Logger';
-import Handler from './Handler';
+import Backend from './Backend';
 import Entry from './Entry';
 
 const DEFAULT_HIGH_WATERMARK = 256;
@@ -24,14 +24,14 @@ export type EventName =
    *
    * @param writeId ordinal number identifying a single write
    * @param pendingQuantity quantity of log entries that currently wait for processing
-   * @param handledQuantity quantity of log entries that are currently being written
+   * @param writedQuantity quantity of log entries that are currently being written
    */
   | 'pressure'
   /**
    * Emitted before each write.
    *
    * @param writeId ordinal number identifying a single writea
-   * @param handledQuantity quantity of log entries that will be written during this write
+   * @param writedQuantity quantity of log entries that will be written during this write
    */
   | 'write'
   /**
@@ -43,7 +43,7 @@ export type EventName =
   | 'written'
   /**
    * Emitted each time all requested log entries are writeen to the log
-   * (queued quantity and handler quantity are zero).
+   * (queued quantity and backend quantity are zero).
    */
   | 'sync'
   /**
@@ -58,7 +58,7 @@ export type EventName =
  * Main class of Aono logger library.
  *
  * It's responsible for:
- *  * registering Handlers
+ *  * registering Backends
  *  * creating Loggers
  *  * batching log entries between writes
  *  * emitting backpressure-related events
@@ -73,14 +73,14 @@ export class Aono<Level extends string> {
   // New entries queued for next write
   private readonly pendingEntries : Entry[] = [];
   // Entries currently being written
-  private readonly handledEntries : Entry[] = [];
+  private readonly writtenEntries : Entry[] = [];
   // Entries from last failed write
   private readonly erroredEntries : Entry[] = [];
   // Function that resolve promises from calls to logger
   private readonly resolveCallbacks : (() => void)[] = [];
 
-  private handler : Handler | null = null;
-  // Incremented each time handler is invoked and sent as argument in 'pressure' event.
+  private backend : Backend | null = null;
+  // Incremented each time backend is invoked and sent as argument in 'pressure' event.
   // Can be used to identify consecutive back pressures in client code of this Aono instance.
   private writeId = 0;
 
@@ -109,19 +109,19 @@ export class Aono<Level extends string> {
   }
 
   /**
-   * Adds given `handler` to Aono.
+   * Adds given `backend` to Aono.
    */
-  addHandler(handler : Handler) : this {
-    if (this.handler !== null) {
-      throw new Error('support for multiple handlers is not implemented');
+  addBackend(backend : Backend) : this {
+    if (this.backend !== null) {
+      throw new Error('support for multiple backends is not implemented');
     }
-    this.handler = handler;
+    this.backend = backend;
     return this;
   }
 
   /**
    * Creates and returns a new instance of `Logger` connected
-   * with this Aono object and its handlers.
+   * with this Aono object and its backends.
    *
    * @return new logger instance
    */
@@ -139,7 +139,7 @@ export class Aono<Level extends string> {
     if (!this.isErrored()) {
       throw new Error('.retry() must be called only after emitting \'error\'');
     }
-    addAll(this.handledEntries, takeAll(this.erroredEntries));
+    addAll(this.writtenEntries, takeAll(this.erroredEntries));
     this.beginNextWrite();
   }
 
@@ -159,7 +159,7 @@ export class Aono<Level extends string> {
    * @return `true` iff at least one entry is currently being written
    */
   isWriting() {
-    return this.handledEntries.length !== 0;
+    return this.writtenEntries.length !== 0;
   }
   /**
    * @return `true` iff last write resulted in an error
@@ -171,7 +171,7 @@ export class Aono<Level extends string> {
    * @return `true` iff sum of queued and written quantities are greater or equal to highWaterMark
    */
   isAtWatermark() {
-    return (this.pendingEntries.length + this.handledEntries.length) >= this.highWaterMark;
+    return (this.pendingEntries.length + this.writtenEntries.length) >= this.highWaterMark;
   }
 
   private onLogEntry(entry : Entry) : Promise<void> {
@@ -183,11 +183,11 @@ export class Aono<Level extends string> {
     const isAtWatermark = this.isAtWatermark();
 
     if (!wasAtWatermark && isAtWatermark) {
-      this.emitter.emit('pressure', this.writeId, this.pendingEntries.length, this.handledEntries.length);
+      this.emitter.emit('pressure', this.writeId, this.pendingEntries.length, this.writtenEntries.length);
     }
 
     if (!this.isWriting() && !this.isErrored()) {
-      addAll(this.handledEntries, takeAll(this.pendingEntries));
+      addAll(this.writtenEntries, takeAll(this.pendingEntries));
       this.beginNextWrite();
     }
     return isAtWatermark
@@ -212,22 +212,22 @@ export class Aono<Level extends string> {
   }
 
   private beginNextWrite() {
-    this.emitter.emit('write', this.writeId, this.handledEntries.length);
+    this.emitter.emit('write', this.writeId, this.writtenEntries.length);
     this.writeId += 1;
 
-    const handler = this.handler as Handler;
-    if (!handler) {
-      throw new Error('handler is not set');
+    const backend = this.backend as Backend;
+    if (!backend) {
+      throw new Error('backend is not set');
     }
 
-    handler.handle(this.handledEntries)
+    backend.write(this.writtenEntries)
       .then(this.onWriteSuccess)
       .catch(this.onWriteError)
     ;
   }
 
   private onWriteSuccess() {
-    this.emitter.emit('written', this.writeId - 1, takeAll(this.handledEntries));
+    this.emitter.emit('written', this.writeId - 1, takeAll(this.writtenEntries));
 
     if (!this.isAtWatermark()) {
       this.resolveCallbacks
@@ -238,11 +238,11 @@ export class Aono<Level extends string> {
       this.emitter.emit('sync');
       return;
     }
-    addAll(this.handledEntries, takeAll(this.pendingEntries));
+    addAll(this.writtenEntries, takeAll(this.pendingEntries));
     this.beginNextWrite();
   }
   private onWriteError(error : any) {
-    addAll(this.erroredEntries, takeAll(this.handledEntries));
+    addAll(this.erroredEntries, takeAll(this.writtenEntries));
     this.emitter.emit('error', error, copy(this.erroredEntries));
   }
 

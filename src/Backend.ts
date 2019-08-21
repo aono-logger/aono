@@ -2,15 +2,17 @@
 import Entry from './Entry';
 
 /**
+ * Implements log IO operations.
+ *
  * @author Maciej Chalapuk (maciej@chalapuk.pl)
  */
-export interface Handler {
+export interface Backend {
   /**
    * Writes given `entries` to the underlying backend,
    * resolves returned the promise afterwards.
    */
-  handle(entries: Entry[]) : Promise<void>;
+  write(entries: Entry[]) : Promise<void>;
 }
 
-export default Handler;
+export default Backend;
 
