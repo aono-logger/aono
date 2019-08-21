@@ -1,4 +1,3 @@
-import { EventEmitter } from 'events';
 
 import Entry from './Entry';
 import TimeProvider from './TimeProvider';
@@ -7,33 +6,21 @@ import TimeProvider from './TimeProvider';
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
 export class Logger<Level> {
-  private readonly emitter = new EventEmitter();
-
   constructor(
-    private getTimestamp : TimeProvider,
-    private name : string,
+    private readonly name : string,
+    private readonly handle : (entry : Entry) => Promise<void>,
+    private readonly getTimestamp : TimeProvider,
   ) {
   }
 
-  log(level : Level, message : string, meta : Object = {}) {
-    this.emitter.emit('log', {
+  log(level : Level, message : string, meta : Object = {}) : Promise<void> {
+    return this.handle({
       timestamp: this.getTimestamp(),
       logger: this.name,
       level: level.toString(),
       message,
       meta,
     });
-  }
-
-  // interface of EventEmitter, but typed
-
-  on(eventName : 'log', listener : (entry : Entry) => void) : this {
-    this.emitter.on(eventName as string, listener);
-    return this;
-  }
-  removeListener(eventName : 'log', listener : (entry : Entry) => void) : this {
-    this.emitter.removeListener(eventName as string, listener);
-    return this;
   }
 }
 

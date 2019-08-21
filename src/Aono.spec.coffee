@@ -40,8 +40,9 @@ describe "Aono", ->
     mocks.syncListener.resetHistory()
 
   describe "given no handlers", ->
-    it "logs without any problem", ->
-      logger.log "mayday", "we are blind"
+    it "throws when trying to log", ->
+      should -> logger.log "mayday", "we are blind"
+        .throw "handler is not set"
 
   describe "given single handler", ->
     beforeEach ->
@@ -65,8 +66,8 @@ describe "Aono", ->
 
         logger.log "info", "first entry"
 
-      it "is not synced", ->
-        testedFactory.isSynced().should.equal false
+      it "is writing", ->
+        testedFactory.isWriting().should.equal true
       it "emits 'pending'", ->
         mocks.pendingListener.should.have.callCount 1
       it "does not emit 'sync'", ->
@@ -85,6 +86,8 @@ describe "Aono", ->
           ]
 
       describe "and after second and third log entry", ->
+        logPromise = null
+
         beforeEach ->
           mocks.timeProvider
             .resetHistory()
@@ -98,10 +101,13 @@ describe "Aono", ->
           mocks.pendingListener.resetHistory()
 
           logger.log "debug", "second entry"
-          logger.log "warn", "entry", number: "three"
+          logPromise = logger.log "warn", "entry", number: "three"
+          undefined # not returning the promise
 
         it "is not synced", ->
           testedFactory.isSynced().should.equal false
+        it "is at watermark", ->
+          testedFactory.isAtWatermark().should.equal true
         it "does not emit second 'pending'", ->
           mocks.pendingListener.should.have.callCount 0
         it "does not emit 'sync'", ->
@@ -120,12 +126,13 @@ describe "Aono", ->
             promise1 = new FakePromise
             mocks.handler0.handle.returns promise1
 
-            promise0.setResult undefined
-              .resolve()
+            promise0.resolve()
             undefined # not returning the promise
 
           it "is not synced", ->
             testedFactory.isSynced().should.equal false
+          it "is at watermark", ->
+            testedFactory.isAtWatermark().should.equal true
           it "does not emit second 'pending'", ->
             mocks.pendingListener.should.have.callCount 0
           it "does not emit 'sync'", ->
@@ -160,8 +167,7 @@ describe "Aono", ->
               mocks.handler0.handle.resetHistory()
               mocks.writeListener.resetHistory()
 
-              promise1.setResult undefined
-                .resolve()
+              promise1.resolve()
               undefined # not returning the promise
 
             it "does not emit second 'pending'", ->
@@ -170,6 +176,8 @@ describe "Aono", ->
               mocks.syncListener.should.have.callCount 1
             it "is synced", ->
               testedFactory.isSynced().should.equal true
+            it "is not at watermark", ->
+              testedFactory.isAtWatermark().should.equal false
             it "emits 'write' with second and third log entry", ->
               mocks.writeListener.should.have.callCount 1
                 .and.have.been.calledWith [{
@@ -187,6 +195,8 @@ describe "Aono", ->
                 }]
             it "does not pass anything to the handler", ->
               mocks.handler0.handle.should.have.callCount 0
+            it "resolves log promise", ->
+              logPromise
 
           describe "and after fourth and fifth log entry", ->
             beforeEach ->
@@ -204,6 +214,7 @@ describe "Aono", ->
 
               logger.log "doomsday", "message"
               logger.log "salvation", "all will be fine"
+              undefined # not returning the promise
 
             it "is not synced", ->
               testedFactory.isSynced().should.equal false
@@ -213,9 +224,10 @@ describe "Aono", ->
               mocks.pendingListener.should.have.callCount 0
             it "does not pass fouth and fifth log entry to the handler", ->
               mocks.handler0.handle.should.have.callCount 0
-            it "emits \'pressure\' with proper writeId", ->
-              mocks.pressureListener.should.have.callCount 1
-                .and.have.been.calledWith 1
+            it "is at watermark", ->
+              testedFactory.isAtWatermark().should.equal true
+            it "does not emit \'pressure\'", ->
+              mocks.pressureListener.should.have.callCount 0
 
       describe "and after first write successfully ends", ->
         promise1 = null
@@ -227,8 +239,7 @@ describe "Aono", ->
           promise1 = new FakePromise
           mocks.handler0.handle.returns promise1
 
-          promise0.setResult undefined
-            .resolve()
+          promise0.resolve()
           undefined # not returning the promise
 
         it "is synced", ->
@@ -252,6 +263,7 @@ describe "Aono", ->
             mocks.syncListener.resetHistory()
 
             logger.log "debug", "entry", number: "two"
+            undefined # not returning the promise
 
           it "is not synced", ->
             testedFactory.isSynced().should.equal false
@@ -273,9 +285,7 @@ describe "Aono", ->
         error = new Error "something went wrong"
 
         beforeEach ->
-          promise0
-            .reject error
-            .reject()
+          promise0.reject error
           undefined # not returning the promise
 
         it "emits the error", ->
@@ -340,6 +350,7 @@ describe "Aono", ->
         mocks.handler0.handle.returns promise0
 
         logger.log "error", "error", fakeError
+        undefined # not returning the promise
 
       it "passes entry with preprocessed error to handler", ->
         mocks.handler0.handle.should.have.callCount 1

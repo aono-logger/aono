@@ -1,4 +1,7 @@
+
 sinon = require "sinon"
+FakePromise = require "fake-promise"
+  .FakePromise
 
 Logger = require "./Logger"
   .default
@@ -8,29 +11,33 @@ describe "Logger", ->
 
   mocks =
     timeProvider: sinon.stub()
-    listener: sinon.spy()
+    handle: sinon.stub()
 
   testedLogger = null
   log = null
+  handlePromise = null
 
   beforeEach ->
-    testedLogger = new Logger mocks.timeProvider, logger0
-    testedLogger.on "log", mocks.listener
+    testedLogger = new Logger logger0, mocks.handle, mocks.timeProvider
+    handlePromise = new FakePromise
+    mocks.handle.returns handlePromise
 
   afterEach ->
+    mocks.handle.resetHistory()
     mocks.timeProvider.resetHistory()
-    mocks.listener.resetHistory()
 
   describe "when after logging without meta", ->
     timestamp0 = 123456
     level0 = "level0"
     message0 = "message0"
 
+    logPromise = null
+
     beforeEach ->
       mocks.timeProvider.returns timestamp0
 
-      testedLogger.log level0, message0
-      log = (mocks.listener.getCall 0).args[0]
+      logPromise = testedLogger.log level0, message0
+      log = (mocks.handle.getCall 0).args[0]
 
     it "emits log with proper timestamp", ->
       log.timestamp.should.equal timestamp0
@@ -43,6 +50,14 @@ describe "Logger", ->
     it "emits log with empty meta", ->
       log.meta.should.eql {}
 
+    describe "after resolving handlePromise", ->
+      beforeEach ->
+        handlePromise.resolve undefined
+        undefined
+
+      it "resolves logPromise", ->
+        logPromise
+
   describe "when after logging with meta", ->
     timestamp1 = 789101112
     level1 = "level1"
@@ -53,7 +68,7 @@ describe "Logger", ->
       mocks.timeProvider.returns timestamp1
 
       testedLogger.log level1, message1, meta0
-      log = (mocks.listener.getCall 0).args[0]
+      log = (mocks.handle.getCall 0).args[0]
 
     it "emits log with proper timestamp", ->
       log.timestamp.should.equal timestamp1
