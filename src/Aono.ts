@@ -4,7 +4,6 @@ import { EventEmitter } from 'events';
 import Logger from './Logger';
 import Handler from './Handler';
 import Entry from './Entry';
-import TimeProvider from './TimeProvider';
 
 const DEFAULT_HIGH_WATERMARK = 256;
 
@@ -86,7 +85,7 @@ export class Aono<Level extends string> {
   private writeId = 0;
 
   constructor(
-    private timeProvider : TimeProvider,
+    private getTimestamp : () => number,
     private highWaterMark : number = DEFAULT_HIGH_WATERMARK,
   ) {
     this.onLogEntry = this.onLogEntry.bind(this);
@@ -127,7 +126,7 @@ export class Aono<Level extends string> {
    * @return new logger instance
    */
   getLogger(name : string) : Logger<Level> {
-    return new Logger<Level>(name, this.onLogEntry, this.timeProvider);
+    return new Logger<Level>(name, this.onLogEntry, this.getTimestamp);
   }
 
   /**
