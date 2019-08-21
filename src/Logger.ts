@@ -5,7 +5,7 @@ import TimeProvider from './TimeProvider';
 /**
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
-export class Logger<Level> {
+export class Logger<Level extends string> {
   constructor(
     private readonly name : string,
     private readonly handle : (entry : Entry) => Promise<void>,
@@ -29,7 +29,7 @@ export class Logger<Level> {
     return this.handle({
       timestamp: this.getTimestamp(),
       logger: this.name,
-      level: level.toString(),
+      level,
       message,
       meta,
     });

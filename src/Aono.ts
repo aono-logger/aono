@@ -13,7 +13,7 @@ export type EventName = 'pending' | 'pressure' | 'write' | 'sync' | 'error';
 /**
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
-export class Aono<Level> {
+export class Aono<Level extends string> {
   private readonly emitter = new EventEmitter();
 
   // New entries queued for next write
