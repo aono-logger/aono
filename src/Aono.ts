@@ -8,9 +8,64 @@ import TimeProvider from './TimeProvider';
 
 const DEFAULT_HIGH_WATERMARK = 256;
 
-export type EventName = 'pending' | 'pressure' | 'write' | 'sync' | 'error';
+/**
+ * Events emitted from instances `Aono`.
+ *
+ * Documented params are emitted with events (as extra arguments).
+ */
+export type EventName =
+  /**
+   * Emitted when the queue for log entries waining to be processed
+   * receives first element after being empty.
+   */
+  'pending'
+  /**
+   * Emitted when sum of queued quantity and processed quantity
+   * is greater or equal to highWaterMark.
+   *
+   * @param writeId ordinal number identifying a single write
+   * @param pendingQuantity quantity of log entries that currently wait for processing
+   * @param handledQuantity quantity of log entries that are currently being written
+   */
+  | 'pressure'
+  /**
+   * Emitted before each write.
+   *
+   * @param writeId ordinal number identifying a single writea
+   * @param handledQuantity quantity of log entries that will be written during this write
+   */
+  | 'write'
+  /**
+   * Emitted after each successful write.
+   *
+   * @param writeId ordinal number identifying a single writea
+   * @param writtenEntries entries which were written to the log
+   */
+  | 'written'
+  /**
+   * Emitted each time all requested log entries are writeen to the log
+   * (queued quantity and handler quantity are zero).
+   */
+  | 'sync'
+  /**
+   * Emitted each time write fails.
+   *
+   * @param error error which cause the failure
+   * @param erroredEntries entries which were not written to the log
+   */
+  | 'error';
 
 /**
+ * Main class of Aono logger library.
+ *
+ * It's responsible for:
+ *  * registering Handlers
+ *  * creating Loggers
+ *  * batching log entries between writes
+ *  * emitting backpressure-related events
+ *
+ * Typically, a single instance of this class is created per a program.
+ *
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
 export class Aono<Level extends string> {
@@ -28,7 +83,7 @@ export class Aono<Level extends string> {
   private handler : Handler | null = null;
   // Incremented each time handler is invoked and sent as argument in 'pressure' event.
   // Can be used to identify consecutive back pressures in client code of this Aono instance.
-  private writeId = -1;
+  private writeId = 0;
 
   constructor(
     private timeProvider : TimeProvider,
@@ -54,6 +109,9 @@ export class Aono<Level extends string> {
     return this;
   }
 
+  /**
+   * Adds given `handler` to Aono.
+   */
   addHandler(handler : Handler) : this {
     if (this.handler !== null) {
       throw new Error('support for multiple handlers is not implemented');
@@ -62,10 +120,22 @@ export class Aono<Level extends string> {
     return this;
   }
 
+  /**
+   * Creates and returns a new instance of `Logger` connected
+   * with this Aono object and its handlers.
+   *
+   * @return new logger instance
+   */
   getLogger(name : string) : Logger<Level> {
     return new Logger<Level>(name, this.onLogEntry, this.timeProvider);
   }
 
+  /**
+   * Retries write of errored entries.
+   *
+   * @pre last write resulted in an error (`this.isErrored() === true`)
+   * @post `.retry` may not be called until next error
+   */
   retry() : void {
     if (!this.isErrored()) {
       throw new Error('.retry() must be called only after emitting \'error\'');
@@ -74,19 +144,33 @@ export class Aono<Level extends string> {
     this.beginNextWrite();
   }
 
+  /**
+   * @return `true` iff all log entries are written
+   */
   isSynced() : boolean {
     return !this.hasPending() && !this.isWriting() && !this.isErrored();
   }
-
+  /**
+   * @return `true` iff at least one entry waits to be processed after current write is finished
+   */
   hasPending() {
     return this.pendingEntries.length !== 0;
   }
+  /**
+   * @return `true` iff at least one entry is currently being written
+   */
   isWriting() {
     return this.handledEntries.length !== 0;
   }
+  /**
+   * @return `true` iff last write resulted in an error
+   */
   isErrored() {
     return this.erroredEntries.length !== 0;
   }
+  /**
+   * @return `true` iff sum of queued and written quantities are greater or equal to highWaterMark
+   */
   isAtWatermark() {
     return (this.pendingEntries.length + this.handledEntries.length) >= this.highWaterMark;
   }
@@ -100,7 +184,7 @@ export class Aono<Level extends string> {
     const isAtWatermark = this.isAtWatermark();
 
     if (!wasAtWatermark && isAtWatermark) {
-      this.emitter.emit('pressure', this.writeId);
+      this.emitter.emit('pressure', this.writeId, this.pendingEntries.length, this.handledEntries.length);
     }
 
     if (!this.isWriting() && !this.isErrored()) {
@@ -129,13 +213,14 @@ export class Aono<Level extends string> {
   }
 
   private beginNextWrite() {
-    const handler = this.handler as Handler;
-
+    this.emitter.emit('write', this.writeId, this.handledEntries.length);
     this.writeId += 1;
 
+    const handler = this.handler as Handler;
     if (!handler) {
       throw new Error('handler is not set');
     }
+
     handler.handle(this.handledEntries)
       .then(this.onWriteSuccess)
       .catch(this.onWriteError)
@@ -143,7 +228,7 @@ export class Aono<Level extends string> {
   }
 
   private onWriteSuccess() {
-    this.emitter.emit('write', takeAll(this.handledEntries));
+    this.emitter.emit('written', this.writeId - 1, takeAll(this.handledEntries));
 
     if (!this.isAtWatermark()) {
       this.resolveCallbacks

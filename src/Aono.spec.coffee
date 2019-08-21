@@ -23,7 +23,7 @@ describe "Aono", ->
   beforeEach ->
     testedFactory = new Aono mocks.timeProvider, TEST_HIGH_WATERMARK
     testedFactory.on "pending", mocks.pendingListener
-    testedFactory.on "write", mocks.writeListener
+    testedFactory.on "written", mocks.writeListener
     testedFactory.on "error", mocks.errorListener
     testedFactory.on "pressure", mocks.pressureListener
     testedFactory.on "sync", mocks.syncListener
@@ -116,7 +116,7 @@ describe "Aono", ->
           mocks.handler0.handle.should.have.callCount 0
         it "emits \'pressure\' with proper writeId", ->
           mocks.pressureListener.should.have.callCount 1
-            .and.have.been.calledWith 0
+            .and.have.been.calledWith 1, 1, 1
 
         describe "and after first write successfully ends", ->
           promise1 = null
@@ -139,7 +139,7 @@ describe "Aono", ->
             mocks.syncListener.should.have.callCount 0
           it "emits 'write' with first log entry", ->
             mocks.writeListener.should.have.callCount 1
-              .and.have.been.calledWith [
+              .and.have.been.calledWith 0, [
                 timestamp: 12345
                 logger: "test"
                 level: "info"
@@ -148,7 +148,7 @@ describe "Aono", ->
               ]
           it "passes second and third log to the handler", ->
             mocks.handler0.handle.should.have.callCount 1
-              .and.have.been.calledWith [{
+              .and.have.been.calledWith  [{
                 timestamp: 98765
                 logger: "test"
                 level: "debug"
@@ -180,7 +180,7 @@ describe "Aono", ->
               testedFactory.isAtWatermark().should.equal false
             it "emits 'write' with second and third log entry", ->
               mocks.writeListener.should.have.callCount 1
-                .and.have.been.calledWith [{
+                .and.have.been.calledWith 1, [{
                   timestamp: 98765
                   logger: "test"
                   level: "debug"
