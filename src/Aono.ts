@@ -287,5 +287,12 @@ class SameTickPromise implements Promise<void> {
   ): Promise<void | TResult> {
     return this.then<void, TResult>(null, onrejected);
   }
+
+  finally(onfinally?: (() => void) | undefined | null) : Promise<void> {
+    if (onfinally) {
+      onfinally();
+    }
+    return Promise.resolve<any>(null);
+  }
 }
 
