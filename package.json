@@ -7,7 +7,7 @@
     "clean": "rm -rf lib #",
     "compile": "tsc",
     "test": "TS_NODE_FILES=1 mocha --use_strict -r source-map-support/register -r coffeescript/register -r ts-node/register src/mocha.config.coffee $(find src -name \"*.spec.coffee\")",
-    "copy": "mkdir -p lib/ && cp package.json lib/",
+    "copy": "mkdir -p lib/ && cp package.json lib/ && cp README.md lib/ && cp LICENSE lib/",
     "build": "npm run compile && npm run copy && npm run test",
     "clean-build": "npm run clean && npm run build",
     "watch": "watch 'npm run clean-build' src",
