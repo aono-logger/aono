@@ -1,6 +1,6 @@
 {
   "name": "aono",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "asynchronous logger for node with back-pressure capability",
   "main": "index.js",
   "scripts": {
