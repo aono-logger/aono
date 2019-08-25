@@ -2,7 +2,7 @@
 import { EventEmitter } from 'events';
 
 import Logger from './Logger';
-import Backend from './Backend';
+import Handler from './Handler';
 import Entry from './Entry';
 
 const DEFAULT_HIGH_WATERMARK = 256;
@@ -43,7 +43,7 @@ export type EventName =
   | 'written'
   /**
    * Emitted each time all requested log entries are writeen to the log
-   * (queued quantity and backend quantity are zero).
+   * (queued quantity and handler quantity are zero).
    */
   | 'sync'
   /**
@@ -58,7 +58,7 @@ export type EventName =
  * Main class of Aono logger library.
  *
  * It's responsible for:
- *  * registering Backends
+ *  * registering Handlers
  *  * creating Loggers
  *  * batching log entries between writes
  *  * emitting backpressure-related events
@@ -79,8 +79,8 @@ export class Aono<Level extends string> {
   // Function that resolve promises from calls to logger
   private readonly resolveCallbacks : (() => void)[] = [];
 
-  private backend : Backend | null = null;
-  // Incremented each time backend is invoked and sent as argument in 'pressure' event.
+  private handler : Handler | null = null;
+  // Incremented each time handler is invoked and sent as argument in 'pressure' event.
   // Can be used to identify consecutive back pressures in client code of this Aono instance.
   private writeId = 0;
 
@@ -109,19 +109,19 @@ export class Aono<Level extends string> {
   }
 
   /**
-   * Adds given `backend` to Aono.
+   * Adds given `handler` to Aono.
    */
-  addBackend(backend : Backend) : this {
-    if (this.backend !== null) {
-      throw new Error('support for multiple backends is not implemented');
+  addHandler(handler : Handler) : this {
+    if (this.handler !== null) {
+      throw new Error('support for multiple handlers is not implemented');
     }
-    this.backend = backend;
+    this.handler = handler;
     return this;
   }
 
   /**
    * Creates and returns a new instance of `Logger` connected
-   * with this Aono object and its backends.
+   * with this Aono object and its handlers.
    *
    * @return new logger instance
    */
@@ -215,12 +215,12 @@ export class Aono<Level extends string> {
     this.emitter.emit('write', this.writeId, this.writtenEntries.length);
     this.writeId += 1;
 
-    const backend = this.backend as Backend;
-    if (!backend) {
-      throw new Error('backend is not set');
+    const handler = this.handler as Handler;
+    if (!handler) {
+      throw new Error('handler is not set');
     }
 
-    backend.write(this.writtenEntries)
+    handler.write(this.writtenEntries)
       .then(this.onWriteSuccess)
       .catch(this.onWriteError)
     ;

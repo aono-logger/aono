@@ -6,7 +6,7 @@ import Entry from './Entry';
  *
  * @author Maciej Chalapuk (maciej@chalapuk.pl)
  */
-export interface Backend {
+export interface Handler {
   /**
    * Writes given `entries` to the underlying backend,
    * resolves returned the promise afterwards.
@@ -14,5 +14,5 @@ export interface Backend {
   write(entries: Entry[]) : Promise<void>;
 }
 
-export default Backend;
+export default Handler;
 

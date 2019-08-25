@@ -1,6 +1,6 @@
 
 export { Aono, default } from './Aono';
 export { Logger } from './Logger';
-export { Backend } from './Backend';
+export { Handler } from './Handler';
 export { Entry } from './Entry';
 

@@ -10,7 +10,7 @@ TEST_HIGH_WATERMARK = 2
 describe "Aono", ->
   mocks =
     timeProvider: sinon.stub()
-    backend0: write: sinon.stub()
+    handler0: write: sinon.stub()
     pendingListener: sinon.spy()
     writeListener: sinon.spy()
     errorListener: sinon.spy()
@@ -31,22 +31,22 @@ describe "Aono", ->
   afterEach ->
     mocks.timeProvider.resetHistory()
     mocks.timeProvider.resetBehavior()
-    mocks.backend0.write.resetHistory()
-    mocks.backend0.write.resetBehavior()
+    mocks.handler0.write.resetHistory()
+    mocks.handler0.write.resetBehavior()
     mocks.pendingListener.resetHistory()
     mocks.writeListener.resetHistory()
     mocks.errorListener.resetHistory()
     mocks.pressureListener.resetHistory()
     mocks.syncListener.resetHistory()
 
-  describe "given no backends", ->
+  describe "given no handlers", ->
     it "throws when trying to log", ->
       should -> logger.log "mayday", "we are blind"
-        .throw "backend is not set"
+        .throw "handler is not set"
 
-  describe "given single backend", ->
+  describe "given single handler", ->
     beforeEach ->
-      testedFactory.addBackend mocks.backend0
+      testedFactory.addHandler mocks.handler0
 
     describe "before any log entries", ->
       it "is synced", ->
@@ -62,7 +62,7 @@ describe "Aono", ->
         mocks.timeProvider.returns 12345
 
         promise0 = new FakePromise
-        mocks.backend0.write.returns promise0
+        mocks.handler0.write.returns promise0
 
         logger.log "info", "first entry"
 
@@ -75,8 +75,8 @@ describe "Aono", ->
       it "is not synced", ->
         testedFactory.isSynced().should.equal false
 
-      it "immediately passes proper log entry to the backend", ->
-        mocks.backend0.write.should.have.callCount 1
+      it "immediately passes proper log entry to the handler", ->
+        mocks.handler0.write.should.have.callCount 1
           .and.have.been.calledWith [
             timestamp: 12345
             logger: "test"
@@ -97,7 +97,7 @@ describe "Aono", ->
           mocks.timeProvider.onCall 1
             .returns 111111
 
-          mocks.backend0.write.resetHistory()
+          mocks.handler0.write.resetHistory()
           mocks.pendingListener.resetHistory()
 
           logger.log "debug", "second entry"
@@ -112,8 +112,8 @@ describe "Aono", ->
           mocks.pendingListener.should.have.callCount 0
         it "does not emit 'sync'", ->
           mocks.syncListener.should.have.callCount 0
-        it "does not pass second and third log entry to the backend", ->
-          mocks.backend0.write.should.have.callCount 0
+        it "does not pass second and third log entry to the handler", ->
+          mocks.handler0.write.should.have.callCount 0
         it "emits \'pressure\' with proper writeId", ->
           mocks.pressureListener.should.have.callCount 1
             .and.have.been.calledWith 1, 1, 1
@@ -122,9 +122,9 @@ describe "Aono", ->
           promise1 = null
 
           beforeEach ->
-            mocks.backend0.write.resetBehavior()
+            mocks.handler0.write.resetBehavior()
             promise1 = new FakePromise
-            mocks.backend0.write.returns promise1
+            mocks.handler0.write.returns promise1
 
             promise0.resolve()
             undefined # not returning the promise
@@ -146,8 +146,8 @@ describe "Aono", ->
                 message: "first entry"
                 meta: {}
               ]
-          it "passes second and third log to the backend", ->
-            mocks.backend0.write.should.have.callCount 1
+          it "passes second and third log to the handler", ->
+            mocks.handler0.write.should.have.callCount 1
               .and.have.been.calledWith  [{
                 timestamp: 98765
                 logger: "test"
@@ -164,7 +164,7 @@ describe "Aono", ->
 
           describe "and after second write successfully ends", ->
             beforeEach ->
-              mocks.backend0.write.resetHistory()
+              mocks.handler0.write.resetHistory()
               mocks.writeListener.resetHistory()
 
               promise1.resolve()
@@ -193,8 +193,8 @@ describe "Aono", ->
                   message: "entry"
                   meta: number: "three"
                 }]
-            it "does not pass anything to the backend", ->
-              mocks.backend0.write.should.have.callCount 0
+            it "does not pass anything to the handler", ->
+              mocks.handler0.write.should.have.callCount 0
             it "resolves log promise", ->
               logPromise
 
@@ -208,7 +208,7 @@ describe "Aono", ->
               mocks.timeProvider.onCall 1
                 .returns 555555
 
-              mocks.backend0.write.resetHistory()
+              mocks.handler0.write.resetHistory()
               mocks.pressureListener.resetHistory()
               mocks.syncListener.resetHistory()
 
@@ -222,8 +222,8 @@ describe "Aono", ->
               mocks.syncListener.should.have.callCount 0
             it "emits 'pending'", ->
               mocks.pendingListener.should.have.callCount 0
-            it "does not pass fouth and fifth log entry to the backend", ->
-              mocks.backend0.write.should.have.callCount 0
+            it "does not pass fouth and fifth log entry to the handler", ->
+              mocks.handler0.write.should.have.callCount 0
             it "is at watermark", ->
               testedFactory.isAtWatermark().should.equal true
             it "does not emit \'pressure\'", ->
@@ -233,11 +233,11 @@ describe "Aono", ->
         promise1 = null
 
         beforeEach ->
-          mocks.backend0.write.resetBehavior()
+          mocks.handler0.write.resetBehavior()
           mocks.pendingListener.resetHistory()
 
           promise1 = new FakePromise
-          mocks.backend0.write.returns promise1
+          mocks.handler0.write.returns promise1
 
           promise0.resolve()
           undefined # not returning the promise
@@ -259,7 +259,7 @@ describe "Aono", ->
               .resetBehavior()
             mocks.timeProvider.returns 98765
 
-            mocks.backend0.write.resetHistory()
+            mocks.handler0.write.resetHistory()
             mocks.syncListener.resetHistory()
 
             logger.log "debug", "entry", number: "two"
@@ -271,8 +271,8 @@ describe "Aono", ->
             mocks.syncListener.should.have.callCount 0
           it "emits 'pending'", ->
             mocks.pendingListener.should.have.callCount 1
-          it "immediately passes second log entry to the backend", ->
-            mocks.backend0.write.should.have.callCount 1
+          it "immediately passes second log entry to the handler", ->
+            mocks.handler0.write.should.have.callCount 1
               .and.have.been.calledWith [
                 timestamp: 98765
                 logger: "test"
@@ -307,27 +307,27 @@ describe "Aono", ->
               .resetBehavior()
             mocks.timeProvider.returns 98765
 
-            mocks.backend0.write.resetHistory()
+            mocks.handler0.write.resetHistory()
 
             logger.log "debug", "entry", number: "two"
 
-          it "does not pass second log entry to the backend", ->
-            mocks.backend0.write.should.have.callCount 0
+          it "does not pass second log entry to the handler", ->
+            mocks.handler0.write.should.have.callCount 0
 
           describe "and after calling .retry", ->
             promise1 = null
 
             beforeEach ->
-              mocks.backend0.write.resetHistory()
-              mocks.backend0.write.resetBehavior()
+              mocks.handler0.write.resetHistory()
+              mocks.handler0.write.resetBehavior()
 
               promise1 = new FakePromise
-              mocks.backend0.write.returns promise1
+              mocks.handler0.write.returns promise1
 
               testedFactory.retry()
 
-            it "immediately passes the first log entry to the backend", ->
-              mocks.backend0.write.should.have.callCount 1
+            it "immediately passes the first log entry to the handler", ->
+              mocks.handler0.write.should.have.callCount 1
                 .and.have.been.calledWith [
                   timestamp: 12345
                   logger: "test"
@@ -347,13 +347,13 @@ describe "Aono", ->
         mocks.timeProvider.returns 12345
 
         promise0 = new FakePromise
-        mocks.backend0.write.returns promise0
+        mocks.handler0.write.returns promise0
 
         logger.log "error", "error", fakeError
         undefined # not returning the promise
 
-      it "passes entry with preprocessed error to backend", ->
-        mocks.backend0.write.should.have.callCount 1
+      it "passes entry with preprocessed error to handler", ->
+        mocks.handler0.write.should.have.callCount 1
           .and.have.been.calledWith [
             timestamp: 12345
             logger: "test"
