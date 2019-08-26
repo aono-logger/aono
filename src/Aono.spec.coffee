@@ -13,7 +13,6 @@ describe "Aono", ->
     handler0: write: sinon.stub()
     handler1: write: sinon.stub()
     pendingListener: sinon.spy()
-    writeListener: sinon.spy()
     errorListener: sinon.spy()
     pressureListener: sinon.spy()
     syncListener: sinon.spy()
@@ -24,7 +23,6 @@ describe "Aono", ->
   beforeEach ->
     testedFactory = new Aono mocks.timeProvider, TEST_HIGH_WATERMARK
     testedFactory.on "pending", mocks.pendingListener
-    testedFactory.on "written", mocks.writeListener
     testedFactory.on "error", mocks.errorListener
     testedFactory.on "pressure", mocks.pressureListener
     testedFactory.on "sync", mocks.syncListener
@@ -35,7 +33,6 @@ describe "Aono", ->
     mocks.handler0.write.resetHistory()
     mocks.handler0.write.resetBehavior()
     mocks.pendingListener.resetHistory()
-    mocks.writeListener.resetHistory()
     mocks.errorListener.resetHistory()
     mocks.pressureListener.resetHistory()
     mocks.syncListener.resetHistory()
@@ -138,15 +135,6 @@ describe "Aono", ->
             mocks.pendingListener.should.have.callCount 0
           it "does not emit 'sync'", ->
             mocks.syncListener.should.have.callCount 0
-          it "emits 'write' with first log entry", ->
-            mocks.writeListener.should.have.callCount 1
-              .and.have.been.calledWith 0, [
-                timestamp: 12345
-                logger: "test"
-                level: "info"
-                message: "first entry"
-                meta: {}
-              ]
           it "passes second and third log to the handler", ->
             mocks.handler0.write.should.have.callCount 1
               .and.have.been.calledWith  [{
@@ -166,7 +154,6 @@ describe "Aono", ->
           describe "and after second write successfully ends", ->
             beforeEach ->
               mocks.handler0.write.resetHistory()
-              mocks.writeListener.resetHistory()
 
               promise1.resolve()
               undefined # not returning the promise
@@ -179,21 +166,6 @@ describe "Aono", ->
               testedFactory.isSynced().should.equal true
             it "is not at watermark", ->
               testedFactory.isAtWatermark().should.equal false
-            it "emits 'write' with second and third log entry", ->
-              mocks.writeListener.should.have.callCount 1
-                .and.have.been.calledWith 1, [{
-                  timestamp: 98765
-                  logger: "test"
-                  level: "debug"
-                  message: "second entry"
-                  meta: {}
-                }, {
-                  timestamp: 111111
-                  logger: "test"
-                  level: "warn"
-                  message: "entry"
-                  meta: number: "three"
-                }]
             it "does not pass anything to the handler", ->
               mocks.handler0.write.should.have.callCount 0
             it "resolves log promise", ->
@@ -417,8 +389,6 @@ describe "Aono", ->
           testedFactory.isSynced().should.equal false
         it "does not emit 'sync'", ->
           mocks.syncListener.should.have.callCount 0
-        it "does not emit 'write'", ->
-          mocks.writeListener.should.have.callCount 0
 
         describe "and after write successfully ends in second handler", ->
           promise3 = null
@@ -435,9 +405,6 @@ describe "Aono", ->
             testedFactory.isSynced().should.equal true
           it "emits 'sync'", ->
             mocks.syncListener.should.have.callCount 1
-          it "emits 'write' with proper entry", ->
-            mocks.writeListener.should.have.callCount 1
-              .and.have.been.calledWith entry0
 
         describe "when after second log entry", ->
           entry1 =

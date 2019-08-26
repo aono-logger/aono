@@ -27,20 +27,6 @@ export type EventName =
    */
   | 'pressure'
   /**
-   * Emitted before each write.
-   *
-   * @param writeId ordinal number identifying a single writea
-   * @param writtenQuantity quantity of log entries that will be written during this write
-   */
-  | 'write'
-  /**
-   * Emitted after each successful write.
-   *
-   * @param writeId ordinal number identifying a single writea
-   * @param writtenEntries entries which were written to the log
-   */
-  | 'written'
-  /**
    * Emitted each time all requested log entries are writeen to the log
    * (queued quantity and handler quantity are zero).
    */
@@ -217,7 +203,6 @@ export class Aono<Level extends string> {
   }
 
   private beginNextWrite() {
-    this.emitter.emit('write', this.writeId, this.writtenEntries.length);
     this.writeId += 1;
 
     const handler = this.handler as Handler;
@@ -232,7 +217,7 @@ export class Aono<Level extends string> {
   }
 
   private onWriteSuccess() {
-    this.emitter.emit('written', this.writeId - 1, takeAll(this.writtenEntries));
+    takeAll(this.writtenEntries);
 
     if (!this.isAtWatermark()) {
       this.resolveCallbacks
