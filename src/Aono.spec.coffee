@@ -11,6 +11,7 @@ describe "Aono", ->
   mocks =
     timeProvider: sinon.stub()
     handler0: write: sinon.stub()
+    handler1: write: sinon.stub()
     pendingListener: sinon.spy()
     writeListener: sinon.spy()
     errorListener: sinon.spy()
@@ -116,7 +117,7 @@ describe "Aono", ->
           mocks.handler0.write.should.have.callCount 0
         it "emits \'pressure\' with proper writeId", ->
           mocks.pressureListener.should.have.callCount 1
-            .and.have.been.calledWith 1, 1, 1
+            .and.have.been.calledWith 1, 2
 
         describe "and after first write successfully ends", ->
           promise1 = null
@@ -366,4 +367,192 @@ describe "Aono", ->
                 "c"
               ]
           ]
+
+  xdescribe "given two handlers", ->
+    beforeEach ->
+      testedFactory.addHandler mocks.handler0
+      testedFactory.addHandler mocks.handler1
+
+    describe "when after first log entry", ->
+      promise0 = null
+      promise1 = null
+
+      entry0 = [
+        timestamp: 12345
+        logger: "test"
+        level: "info"
+        message: "first entry"
+        meta: {}
+      ]
+
+      beforeEach ->
+        mocks.timeProvider.returns 12345
+
+        promise0 = new FakePromise
+        mocks.handler0.write.returns promise0
+        promise1 = new FakePromise
+        mocks.handler1.write.returns promise1
+
+        logger.log "info", "first entry"
+
+      it "immediately passes proper log entry to first handler", ->
+        mocks.handler0.write.should.have.callCount 1
+          .and.have.been.calledWith [ entry0 ]
+      it "immediately passes proper log entry to second handler", ->
+        mocks.handler1.write.should.have.callCount 1
+          .and.have.been.calledWith [ entry0 ]
+
+      describe "and after write successfully ends in first handler", ->
+        promise2 = null
+
+        beforeEach ->
+          mocks.handler0.write.resetBehavior()
+          promise2 = new FakePromise
+          mocks.handler0.write.returns promise2
+
+          promise0.resolve()
+          undefined # not returning the promise
+
+        it "is not synced", ->
+          testedFactory.isSynced().should.equal false
+        it "does not emit 'sync'", ->
+          mocks.syncListener.should.have.callCount 0
+        it "does not emit 'write'", ->
+          mocks.writeListener.should.have.callCount 0
+
+        describe "and after write successfully ends in second handler", ->
+          promise3 = null
+
+          beforeEach ->
+            mocks.handler1.write.resetBehavior()
+            promise3 = new FakePromise
+            mocks.handler1.write.returns promise3
+
+            promise1.resolve()
+            undefined # not returning the promise
+
+          it "is synced", ->
+            testedFactory.isSynced().should.equal true
+          it "emits 'sync'", ->
+            mocks.syncListener.should.have.callCount 1
+          it "emits 'write' with proper entry", ->
+            mocks.writeListener.should.have.callCount 1
+              .and.have.been.calledWith entry0
+
+        describe "when after second log entry", ->
+          entry1 =
+            timestamp: 98765
+            logger: "test"
+            level: "debug"
+            message: "second entry"
+            meta: {}
+          beforeEach ->
+            mocks.timeProvider.returns 98765
+
+            logger.log "debug", "second entry"
+
+          it "immediately passes second entry to first handler", ->
+            mocks.handler0.write.should.have.callCount 1
+              .and.have.been.calledWith [ entry1 ]
+          it "does not pass second entry to second handler", ->
+            mocks.handler1.write.should.have.callCount 0
+
+          it "is not synced", ->
+            testedFactory.isSynced().should.equal false
+          it "does not emit 'sync'", ->
+            mocks.syncListener.should.have.callCount 0
+          it "emits \'pressure\' with proper writeId", ->
+            mocks.pressureListener.should.have.callCount 1
+              .and.have.been.calledWith 2, 2
+          it "is pressured", ->
+            testedFactory.isPressured().should.equal true
+
+        describe "when after third log entry", ->
+          entry2 =
+            timestamp: 111111
+            logger: "test"
+            level: "warn"
+            message: "entry"
+            meta: number: "three"
+
+          beforeEach ->
+            mocks.pressureListener.resetHistory()
+            mocks.timeProvider.returns 111111
+
+            logger.log "warn", "three"
+
+          it "does not pass second entry to first handler", ->
+            mocks.handler0.write.should.have.callCount 0
+          it "does not pass second entry to second handler", ->
+            mocks.handler1.write.should.have.callCount 0
+
+          it "is not synced", ->
+            testedFactory.isSynced().should.equal false
+          it "does not emit \'pressure\' second time", ->
+            mocks.pressureListener.should.have.callCount 0
+          it "is pressured", ->
+            testedFactory.isPressured().should.equal true
+
+          describe "and after second write successfully ends in first handler", ->
+            promise3 = null
+
+            beforeEach ->
+              mocks.handler0.write.resetBehavior()
+              promise3 = new FakePromise
+              mocks.handler0.write.returns promise3
+
+              promise2.resolve()
+              undefined # not returning the promise
+
+            it "passes third entry to first handler", ->
+              mocks.handler0.write.should.have.callCount 1
+                .and.have.been.calledWith [ entry2 ]
+
+            it "is not synced", ->
+              testedFactory.isSynced().should.equal false
+            it "is pressured", ->
+              testedFactory.isPressured().should.equal true
+            it "has proper queue length", ->
+              testedFactory.getQueueLength().should.equal 3
+
+            describe "and after first write successfully ends in second handler", ->
+              promise4 = null
+
+              beforeEach ->
+                mocks.handler1.write.resetBehavior()
+                promise4 = new FakePromise
+                mocks.handler1.write.returns promise4
+
+                promise1.resolve()
+                undefined # not returning the promise
+
+              it "passes second and third entries to second handler", ->
+                mocks.handler0.write.should.have.callCount 1
+                  .and.have.been.calledWith [ entry2, entry3 ]
+
+              it "is not synced", ->
+                testedFactory.isSynced().should.equal false
+              it "is pressured", ->
+                testedFactory.isPressured().should.equal true
+              it "has proper queue length", ->
+                testedFactory.getQueueLength().should.equal 2
+
+            describe "and writes in both handlers successfully ends", ->
+              beforeEach ->
+                promise3.resolve()
+                promise4.resolve()
+                undefined # not returning the promise
+
+              it "emits 'sync'", ->
+                mocks.syncListener.should.have.callCount 0
+              it "is synced", ->
+                testedFactory.isSynced().should.equal true
+              it "has not pending entries", ->
+                testedFactory.hasPending().should.equal false
+              it "is not writing", ->
+                testedFactory.isWriting().should.equal false
+              it "is not pressured", ->
+                testedFactory.isPressured().should.equal false
+              it "has queue length of zero", ->
+                testedFactory.getQueueLength().should.equal 0
 

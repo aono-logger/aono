@@ -23,15 +23,14 @@ export type EventName =
    * is greater or equal to highWaterMark.
    *
    * @param writeId ordinal number identifying a single write
-   * @param pendingQuantity quantity of log entries that currently wait for processing
-   * @param writedQuantity quantity of log entries that are currently being written
+   * @param queuedQuantity quantity of queued log entries
    */
   | 'pressure'
   /**
    * Emitted before each write.
    *
    * @param writeId ordinal number identifying a single writea
-   * @param writedQuantity quantity of log entries that will be written during this write
+   * @param writtenQuantity quantity of log entries that will be written during this write
    */
   | 'write'
   /**
@@ -173,6 +172,12 @@ export class Aono<Level extends string> {
   isAtWatermark() {
     return (this.pendingEntries.length + this.writtenEntries.length) >= this.highWaterMark;
   }
+  /**
+   * @return quantity of log entrie that currently wait for processing or are currently being written
+   */
+  getQueueLength() {
+    return this.pendingEntries.length + this.writtenEntries.length;
+  }
 
   private onLogEntry(entry : Entry) : Promise<void> {
     if (this.isSynced()) {
@@ -183,7 +188,7 @@ export class Aono<Level extends string> {
     const isAtWatermark = this.isAtWatermark();
 
     if (!wasAtWatermark && isAtWatermark) {
-      this.emitter.emit('pressure', this.writeId, this.pendingEntries.length, this.writtenEntries.length);
+      this.emitter.emit('pressure', this.writeId, this.getQueueLength());
     }
 
     if (!this.isWriting() && !this.isErrored()) {
