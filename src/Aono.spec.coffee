@@ -44,7 +44,7 @@ describe "Aono", ->
 
   describe "given single handler", ->
     beforeEach ->
-      testedFactory.addHandler mocks.handler0
+      testedFactory.addHandler "handler0", mocks.handler0
 
     describe "before any log entries", ->
       it "is synced", ->
@@ -342,8 +342,8 @@ describe "Aono", ->
 
   xdescribe "given two handlers", ->
     beforeEach ->
-      testedFactory.addHandler mocks.handler0
-      testedFactory.addHandler mocks.handler1
+      testedFactory.addHandler "handler0", mocks.handler0
+      testedFactory.addHandler "handler1", mocks.handler1
 
     describe "when after first log entry", ->
       promise0 = null

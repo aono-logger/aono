@@ -95,8 +95,11 @@ export class Aono<Level extends string> {
 
   /**
    * Adds given `handler` to Aono.
+   *
+   * @param name unique identifier of added handler
+   * @param handler handler that will be added to this instance of Aono
    */
-  addHandler(handler : Handler) : this {
+  addHandler(name : string, handler : Handler) : this {
     if (this.handler !== null) {
       throw new Error('support for multiple handlers is not implemented');
     }
