@@ -8,6 +8,13 @@ import Entry from './Entry';
  */
 export interface Handler {
   /**
+   * High water mark for 'backpressure' event emitted from Aono.
+   *
+   * @default 256
+   */
+  highWaterMark ?: number;
+
+  /**
    * Writes given `entries` to the underlying backend,
    * resolves returned the promise afterwards.
    */

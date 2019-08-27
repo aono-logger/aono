@@ -10,7 +10,7 @@ TEST_HIGH_WATERMARK = 2
 describe "Aono", ->
   mocks =
     timeProvider: sinon.stub()
-    handler0: write: sinon.stub()
+    handler0: write: sinon.stub(), highWaterMark: TEST_HIGH_WATERMARK
     handler1: write: sinon.stub()
     errorListener: sinon.spy()
     pressureListener: sinon.spy()
@@ -20,7 +20,7 @@ describe "Aono", ->
   logger = null
 
   beforeEach ->
-    testedFactory = new Aono mocks.timeProvider, TEST_HIGH_WATERMARK
+    testedFactory = new Aono mocks.timeProvider
     testedFactory.on "error", mocks.errorListener
     testedFactory.on "pressure", mocks.pressureListener
     testedFactory.on "sync", mocks.syncListener
@@ -61,8 +61,6 @@ describe "Aono", ->
 
         logger.log "info", "first entry"
 
-      it "is writing", ->
-        testedFactory.isWriting().should.equal true
       it "does not emit 'sync'", ->
         mocks.syncListener.should.have.callCount 0
       it "is not synced", ->
@@ -246,13 +244,7 @@ describe "Aono", ->
 
         it "emits the error", ->
           mocks.errorListener.should.have.callCount 1
-            .and.have.been.calledWith "handler0", error, [
-              timestamp: 12345
-              logger: "test"
-              level: "info"
-              message: "first entry"
-              meta: {}
-            ]
+            .and.have.been.calledWith "handler0", 1, error
         it "is not synced", ->
           testedFactory.isSynced().should.equal false
 
@@ -266,6 +258,7 @@ describe "Aono", ->
             mocks.handler0.write.resetHistory()
 
             logger.log "debug", "entry", number: "two"
+            undefined # don't return promise
 
           it "does not pass second log entry to the handler", ->
             mocks.handler0.write.should.have.callCount 0
@@ -498,10 +491,6 @@ describe "Aono", ->
                 mocks.syncListener.should.have.callCount 0
               it "is synced", ->
                 testedFactory.isSynced().should.equal true
-              it "has no pending entries", ->
-                testedFactory.hasPending().should.equal false
-              it "is not writing", ->
-                testedFactory.isWriting().should.equal false
               it "is not pressured", ->
                 testedFactory.isPressured().should.equal false
               it "has queue length of zero", ->
