@@ -12,7 +12,6 @@ describe "Aono", ->
     timeProvider: sinon.stub()
     handler0: write: sinon.stub()
     handler1: write: sinon.stub()
-    pendingListener: sinon.spy()
     errorListener: sinon.spy()
     pressureListener: sinon.spy()
     syncListener: sinon.spy()
@@ -22,7 +21,6 @@ describe "Aono", ->
 
   beforeEach ->
     testedFactory = new Aono mocks.timeProvider, TEST_HIGH_WATERMARK
-    testedFactory.on "pending", mocks.pendingListener
     testedFactory.on "error", mocks.errorListener
     testedFactory.on "pressure", mocks.pressureListener
     testedFactory.on "sync", mocks.syncListener
@@ -32,7 +30,6 @@ describe "Aono", ->
     mocks.timeProvider.resetBehavior()
     mocks.handler0.write.resetHistory()
     mocks.handler0.write.resetBehavior()
-    mocks.pendingListener.resetHistory()
     mocks.errorListener.resetHistory()
     mocks.pressureListener.resetHistory()
     mocks.syncListener.resetHistory()
@@ -66,8 +63,6 @@ describe "Aono", ->
 
       it "is writing", ->
         testedFactory.isWriting().should.equal true
-      it "emits 'pending'", ->
-        mocks.pendingListener.should.have.callCount 1
       it "does not emit 'sync'", ->
         mocks.syncListener.should.have.callCount 0
       it "is not synced", ->
@@ -96,7 +91,6 @@ describe "Aono", ->
             .returns 111111
 
           mocks.handler0.write.resetHistory()
-          mocks.pendingListener.resetHistory()
 
           logger.log "debug", "second entry"
           logPromise = logger.log "warn", "entry", number: "three"
@@ -106,8 +100,6 @@ describe "Aono", ->
           testedFactory.isSynced().should.equal false
         it "is at watermark", ->
           testedFactory.isAtWatermark().should.equal true
-        it "does not emit second 'pending'", ->
-          mocks.pendingListener.should.have.callCount 0
         it "does not emit 'sync'", ->
           mocks.syncListener.should.have.callCount 0
         it "does not pass second and third log entry to the handler", ->
@@ -131,8 +123,6 @@ describe "Aono", ->
             testedFactory.isSynced().should.equal false
           it "is at watermark", ->
             testedFactory.isAtWatermark().should.equal true
-          it "does not emit second 'pending'", ->
-            mocks.pendingListener.should.have.callCount 0
           it "does not emit 'sync'", ->
             mocks.syncListener.should.have.callCount 0
           it "passes second and third log to the handler", ->
@@ -158,8 +148,6 @@ describe "Aono", ->
               promise1.resolve()
               undefined # not returning the promise
 
-            it "does not emit second 'pending'", ->
-              mocks.pendingListener.should.have.callCount 0
             it "emits 'sync'", ->
               mocks.syncListener.should.have.callCount 1
             it "is synced", ->
@@ -193,8 +181,6 @@ describe "Aono", ->
               testedFactory.isSynced().should.equal false
             it "does not emit 'sync'", ->
               mocks.syncListener.should.have.callCount 0
-            it "emits 'pending'", ->
-              mocks.pendingListener.should.have.callCount 0
             it "does not pass fouth and fifth log entry to the handler", ->
               mocks.handler0.write.should.have.callCount 0
             it "is at watermark", ->
@@ -207,7 +193,6 @@ describe "Aono", ->
 
         beforeEach ->
           mocks.handler0.write.resetBehavior()
-          mocks.pendingListener.resetHistory()
 
           promise1 = new FakePromise
           mocks.handler0.write.returns promise1
@@ -219,8 +204,6 @@ describe "Aono", ->
           testedFactory.isSynced().should.equal true
         it "emits 'sync'", ->
           mocks.syncListener.should.have.callCount 1
-        it "doesnt emit 'pending'", ->
-          mocks.pendingListener.should.have.callCount 0
         it "calling .retry throws", ->
           () -> testedFactory.retry()
             .should.throw ".retry() must be called only after emitting 'error'"
@@ -242,8 +225,6 @@ describe "Aono", ->
             testedFactory.isSynced().should.equal false
           it "doesnt emit 'sync'", ->
             mocks.syncListener.should.have.callCount 0
-          it "emits 'pending'", ->
-            mocks.pendingListener.should.have.callCount 1
           it "immediately passes second log entry to the handler", ->
             mocks.handler0.write.should.have.callCount 1
               .and.have.been.calledWith [
@@ -514,7 +495,7 @@ describe "Aono", ->
                 mocks.syncListener.should.have.callCount 0
               it "is synced", ->
                 testedFactory.isSynced().should.equal true
-              it "has not pending entries", ->
+              it "has no pending entries", ->
                 testedFactory.hasPending().should.equal false
               it "is not writing", ->
                 testedFactory.isWriting().should.equal false

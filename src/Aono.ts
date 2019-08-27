@@ -14,20 +14,15 @@ const DEFAULT_HIGH_WATERMARK = 256;
  */
 export type EventName =
   /**
-   * Emitted when the queue for log entries waining to be processed
-   * receives first element after being empty.
-   */
-  'pending'
-  /**
    * Emitted when sum of queued quantity and processed quantity
    * is greater or equal to highWaterMark.
    *
-   * @param writeId ordinal number identifying a single write
+   * @param writeId ordinal number identifying a single call to Handler.write(entries)
    * @param queuedQuantity quantity of queued log entries
    */
   | 'pressure'
   /**
-   * Emitted each time all requested log entries are writeen to the log
+   * Emitted each time all requested log entries are successfully writeen to the log
    * (queued quantity and handler quantity are zero).
    */
   | 'sync'
@@ -169,9 +164,6 @@ export class Aono<Level extends string> {
   }
 
   private onLogEntry(entry : Entry) : Promise<void> {
-    if (this.isSynced()) {
-      this.emitter.emit('pending');
-    }
     const wasAtWatermark = this.isAtWatermark();
     this.pendingEntries.push(this.preprocess(entry));
     const isAtWatermark = this.isAtWatermark();
