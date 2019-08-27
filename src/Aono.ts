@@ -17,18 +17,22 @@ export type EventName =
    * Emitted when sum of queued quantity and processed quantity
    * is greater or equal to highWaterMark.
    *
+   * @param handlerName name of handler on which back pressure is triggered
    * @param writeId ordinal number identifying a single call to Handler.write(entries)
    * @param queuedQuantity quantity of queued log entries
    */
   | 'pressure'
   /**
-   * Emitted each time all requested log entries are successfully writeen to the log
-   * (queued quantity and handler quantity are zero).
+   * Emitted each time all requested log entries are successfully writeen to a handler
+   * (queued of a handler becomes empty).
+   *
+   * @param handlerName name of handler which became synced
    */
   | 'sync'
   /**
    * Emitted each time write fails.
    *
+   * @param handlerName name of handler which became synced
    * @param error error which cause the failure
    * @param erroredEntries entries which were not written to the log
    */
@@ -59,6 +63,7 @@ export class Aono<Level extends string> {
   // Function that resolve promises from calls to logger
   private readonly resolveCallbacks : (() => void)[] = [];
 
+  private handlerName : string | null = null;
   private handler : Handler | null = null;
   // Incremented each time handler is invoked and sent as argument in 'pressure' event.
   // Can be used to identify consecutive back pressures in client code of this Aono instance.
@@ -98,6 +103,7 @@ export class Aono<Level extends string> {
     if (this.handler !== null) {
       throw new Error('support for multiple handlers is not implemented');
     }
+    this.handlerName = name;
     this.handler = handler;
     return this;
   }
@@ -169,7 +175,7 @@ export class Aono<Level extends string> {
     const isAtWatermark = this.isAtWatermark();
 
     if (!wasAtWatermark && isAtWatermark) {
-      this.emitter.emit('pressure', this.writeId, this.getQueueLength());
+      this.emitter.emit('pressure', this.handlerName, this.writeId, this.getQueueLength());
     }
 
     if (!this.isWriting() && !this.isErrored()) {
@@ -220,7 +226,7 @@ export class Aono<Level extends string> {
         .forEach(call => call());
     }
     if (!this.hasPending()) {
-      this.emitter.emit('sync');
+      this.emitter.emit('sync', this.handlerName);
       return;
     }
     addAll(this.writtenEntries, takeAll(this.pendingEntries));
@@ -228,7 +234,7 @@ export class Aono<Level extends string> {
   }
   private onWriteError(error : any) {
     addAll(this.erroredEntries, takeAll(this.writtenEntries));
-    this.emitter.emit('error', error, copy(this.erroredEntries));
+    this.emitter.emit('error', this.handlerName, error, copy(this.erroredEntries));
   }
 
   private addResolveCallback(callback : () => void) {

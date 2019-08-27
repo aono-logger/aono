@@ -106,7 +106,7 @@ describe "Aono", ->
           mocks.handler0.write.should.have.callCount 0
         it "emits \'pressure\' with proper writeId", ->
           mocks.pressureListener.should.have.callCount 1
-            .and.have.been.calledWith 1, 2
+            .and.have.been.calledWith "handler0", 1, 2
 
         describe "and after first write successfully ends", ->
           promise1 = null
@@ -150,6 +150,7 @@ describe "Aono", ->
 
             it "emits 'sync'", ->
               mocks.syncListener.should.have.callCount 1
+                .and.have.been.calledWith "handler0"
             it "is synced", ->
               testedFactory.isSynced().should.equal true
             it "is not at watermark", ->
@@ -204,6 +205,7 @@ describe "Aono", ->
           testedFactory.isSynced().should.equal true
         it "emits 'sync'", ->
           mocks.syncListener.should.have.callCount 1
+            .and.have.been.calledWith "handler0"
         it "calling .retry throws", ->
           () -> testedFactory.retry()
             .should.throw ".retry() must be called only after emitting 'error'"
@@ -244,7 +246,7 @@ describe "Aono", ->
 
         it "emits the error", ->
           mocks.errorListener.should.have.callCount 1
-            .and.have.been.calledWith error, [
+            .and.have.been.calledWith "handler0", error, [
               timestamp: 12345
               logger: "test"
               level: "info"
@@ -386,6 +388,7 @@ describe "Aono", ->
             testedFactory.isSynced().should.equal true
           it "emits 'sync'", ->
             mocks.syncListener.should.have.callCount 1
+              .and.have.been.calledWith "handler0"
 
         describe "when after second log entry", ->
           entry1 =
@@ -411,7 +414,7 @@ describe "Aono", ->
             mocks.syncListener.should.have.callCount 0
           it "emits \'pressure\' with proper writeId", ->
             mocks.pressureListener.should.have.callCount 1
-              .and.have.been.calledWith 2, 2
+              .and.have.been.calledWith "handler0", 2, 2
           it "is pressured", ->
             testedFactory.isPressured().should.equal true
 
