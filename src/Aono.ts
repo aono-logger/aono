@@ -135,6 +135,20 @@ export class Aono<Level extends string> {
       )
     ;
   }
+
+  /**
+   * @return `true` iff at least on of the handlers has queque of length gte `Handler.highWaterMark`
+   */
+  isPressured() : boolean {
+    return Object.keys(this.streams)
+      .map(name => this.streams[name])
+      .reduce(
+        (retVal, stream) => retVal || stream.isAtWatermark(),
+        false,
+      )
+    ;
+  }
+
   /**
    * @return `true` iff last write resulted in an error in one of used handlers
    */
@@ -147,27 +161,19 @@ export class Aono<Level extends string> {
       )
     ;
   }
-  /**
-   * @return `true` iff quede length at least one handler is greater or equal to its Handler.highWaterMark
-   */
-  isAtWatermark() {
-    return Object.keys(this.streams)
-      .map(name => this.streams[name])
-      .reduce(
-        (retVal, stream) => retVal || stream.isAtWatermark(),
-        false,
-      )
-    ;
-  }
 
   private onLogEntry(entry : Entry) : Promise<void> {
     if (Object.keys(this.streams).length === 0) {
       throw new Error('handler is not set');
     }
-    return Promise.all(
-      Object.keys(this.streams)
-        .map(name => this.writeToStream(name, entry))
-    ) as Promise<any>;
+    const promises = Object.keys(this.streams)
+      .map(name => this.writeToStream(name, entry));
+    if (hasOnlySameTickPromises(promises)) {
+      // using Promise.all(...) prevents it from being same tick
+      return new SameTickPromise();
+    }
+    // some handler is pressured, promise with be resolved after release
+    return Promise.all(promises) as Promise<any>;
   }
 
   private writeToStream(name : string, entry : Entry) {
@@ -187,7 +193,7 @@ export class Aono<Level extends string> {
   }
 
   private onWriteSuccess(name : string) {
-    if (!this.isAtWatermark()) {
+    if (!this.isPressured()) {
       this.resolveCallbacks
         .splice(0, this.resolveCallbacks.length)
         .forEach(call => call());
@@ -205,7 +211,7 @@ export class Aono<Level extends string> {
   }
 
   private addResolveCallback(callback : () => void) {
-    if (this.isAtWatermark()) {
+    if (this.isPressured()) {
       this.resolveCallbacks.push(callback);
     } else {
       callback();
@@ -240,5 +246,14 @@ class SameTickPromise implements Promise<void> {
     }
     return Promise.resolve<any>(null);
   }
+}
+
+function hasOnlySameTickPromises(promises : Promise<unknown>[]) {
+  for (const promise of promises) {
+    if (!(promise instanceof SameTickPromise)) {
+      return false;
+    }
+  }
+  return true;
 }
 
