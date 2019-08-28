@@ -48,7 +48,7 @@ describe "Aono", ->
         testedFactory.isSynced().should.equal true
       it "calling .retry throws", ->
         () -> testedFactory.retry()
-          .should.throw ".retry() must be called only after emitting 'error'"
+          .should.throw ".retry() must be called only after 'error' is emitted"
 
     describe "when after first log entry", ->
       promise0 = null
@@ -206,7 +206,7 @@ describe "Aono", ->
             .and.have.been.calledWith "handler0"
         it "calling .retry throws", ->
           () -> testedFactory.retry()
-            .should.throw ".retry() must be called only after emitting 'error'"
+            .should.throw ".retry() must be called only after 'error' is emitted"
 
         describe "and after second log entry", ->
           beforeEach ->

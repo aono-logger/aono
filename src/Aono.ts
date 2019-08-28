@@ -55,8 +55,7 @@ export class Aono<Level extends string> {
   // Function that resolve promises from calls to logger
   private readonly resolveCallbacks : (() => void)[] = [];
 
-  private handlerName : string | null = null;
-  private stream : LogStream | null = null;
+  private readonly streams : { [_ : string] : LogStream } = {};
 
   constructor(
     private getTimestamp : () => number,
@@ -86,11 +85,10 @@ export class Aono<Level extends string> {
    * @param handler handler that will be added to this instance of Aono
    */
   addHandler(name : string, handler : Handler) : this {
-    if (this.stream !== null) {
-      throw new Error('support for multiple handlers is not implemented');
+    if (name in this.streams) {
+      throw new Error(`handler of name '${name}' already added`);
     }
-    this.handlerName = name;
-    this.stream = new LogStream(
+    this.streams[name] = new LogStream(
       handler,
       this.onWriteSuccess.bind(this, name),
       this.onWriteError.bind(this, name)
@@ -115,50 +113,72 @@ export class Aono<Level extends string> {
    * @post `.retry` may not be called until next error
    */
   retry() : void {
-    if (!this.stream) {
-      throw new Error('handler is not set');
+    const erroredStreams = Object.keys(this.streams)
+      .map(name => this.streams[name])
+      .filter(stream => stream.isErrored())
+    ;
+    if (erroredStreams.length === 0) {
+      throw new Error('.retry() must be called only after \'error\' is emitted');
     }
-    this.stream.retry();
+    erroredStreams.forEach(stream => stream.retry());
   }
 
   /**
-   * @return `true` iff all log entries are written
+   * @return `true` iff all log entries are written to all handlers
    */
   isSynced() : boolean {
-    if (!this.stream) {
-      throw new Error('handler is not set');
-    }
-    return this.stream.isSynced();
+    return Object.keys(this.streams)
+      .map(name => this.streams[name])
+      .reduce(
+        (retVal, stream) => retVal && stream.isSynced(),
+        true,
+      )
+    ;
   }
   /**
-   * @return `true` iff last write resulted in an error
+   * @return `true` iff last write resulted in an error in one of used handlers
    */
   isErrored() {
-    if (!this.stream) {
-      throw new Error('handler is not set');
-    }
-    return this.stream.isErrored();
+    return Object.keys(this.streams)
+      .map(name => this.streams[name])
+      .reduce(
+        (retVal, stream) => retVal || stream.isErrored(),
+        false,
+      )
+    ;
   }
   /**
-   * @return `true` iff sum of queued and written quantities are greater or equal to highWaterMark
+   * @return `true` iff quede length at least one handler is greater or equal to its Handler.highWaterMark
    */
   isAtWatermark() {
-    if (!this.stream) {
-      throw new Error('handler is not set');
-    }
-    return this.stream.isAtWatermark();
+    return Object.keys(this.streams)
+      .map(name => this.streams[name])
+      .reduce(
+        (retVal, stream) => retVal || stream.isAtWatermark(),
+        false,
+      )
+    ;
   }
 
   private onLogEntry(entry : Entry) : Promise<void> {
-    if (!this.stream) {
+    if (Object.keys(this.streams).length === 0) {
       throw new Error('handler is not set');
     }
-    const wasAtWatermark = this.stream.isAtWatermark();
-    this.stream.write(entry);
-    const isAtWatermark = this.stream.isAtWatermark();
+    return Promise.all(
+      Object.keys(this.streams)
+        .map(name => this.writeToStream(name, entry))
+    ) as Promise<any>;
+  }
+
+  private writeToStream(name : string, entry : Entry) {
+    const stream = this.streams[name];
+
+    const wasAtWatermark = stream.isAtWatermark();
+    stream.write(entry);
+    const isAtWatermark = stream.isAtWatermark();
 
     if (!wasAtWatermark && isAtWatermark) {
-      this.emitter.emit('pressure', this.handlerName, this.stream.writeId, this.stream.length);
+      this.emitter.emit('pressure', name, stream.writeId, stream.length);
     }
     return isAtWatermark
       ? new Promise(this.addResolveCallback)
@@ -172,12 +192,16 @@ export class Aono<Level extends string> {
         .splice(0, this.resolveCallbacks.length)
         .forEach(call => call());
     }
-    if (this.isSynced()) {
+    const stream = this.streams[name];
+
+    if (stream.isSynced()) {
       this.emitter.emit('sync', name);
     }
   }
   private onWriteError(name : string, error : any) {
-    this.emitter.emit('error', this.handlerName, (this.stream as LogStream).writeId, error);
+    const stream = this.streams[name];
+
+    this.emitter.emit('error', name, stream.writeId, error);
   }
 
   private addResolveCallback(callback : () => void) {
