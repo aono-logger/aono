@@ -65,15 +65,15 @@ export class Aono<Level extends string> {
   }
 
   // EventEmitter interface, but typed
-  on(eventName : EventName, callback : () => void) : this {
+  on(eventName : EventName, callback : (...arg : any[]) => void) : this {
     this.emitter.on(eventName, callback);
     return this;
   }
-  once(eventName : EventName, callback : () => void) : this {
+  once(eventName : EventName, callback : (...arg : any[]) => void) : this {
     this.emitter.once(eventName, callback);
     return this;
   }
-  removeListener(eventName : EventName, callback : () => void) : this {
+  removeListener(eventName : EventName, callback : (...arg : any[]) => void) : this {
     this.emitter.removeListener(eventName, callback);
     return this;
   }
