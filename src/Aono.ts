@@ -31,9 +31,9 @@ export type EventName =
   /**
    * Emitted each time write fails.
    *
+   * @param error error which cause the failure
    * @param name name of handler which became synced
    * @param writeId ordinal number which identifies collection of entries passed to Handler.write(...)
-   * @param error error which cause the failure
    */
   | 'error';
 
@@ -207,7 +207,7 @@ export class Aono<Level extends string> {
   private onWriteError(name : string, error : any) {
     const stream = this.streams[name];
 
-    this.emitter.emit('error', name, stream.writeId, error);
+    this.emitter.emit('error', error, name, stream.writeId);
   }
 
   private addResolveCallback(callback : () => void) {

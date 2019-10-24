@@ -245,7 +245,7 @@ describe "Aono", ->
 
         it "emits the error", ->
           mocks.errorListener.should.have.callCount 1
-            .and.have.been.calledWith "handler0", 1, error
+            .and.have.been.calledWith error, "handler0", 1
         it "is not synced", ->
           testedFactory.isSynced().should.equal false
 
