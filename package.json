@@ -35,7 +35,7 @@
   "homepage": "https://github.com/aono-logger/aono#readme",
   "dependencies": {},
   "devDependencies": {
-    "@types/node": "^13.1.2",
+    "@types/node": "^13.1.4",
     "coffeescript": "^2.5.0",
     "fake-promise": "^2.5.5",
     "mocha": "^6.2.2",
