@@ -133,7 +133,7 @@ export default LogStream;
 function preprocess(entry : Entry) : Entry {
   const preprocessed = { ...entry, meta: { ...entry.meta } };
 
-  const { name, message, stack, ...meta } = entry.meta;
+  const { name, message, stack, ...meta } = entry.meta as any;
   if (name && message && stack) {
     // An error was passed as meta param.
     // It's better to convert it to a stacktrace.

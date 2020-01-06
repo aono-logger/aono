@@ -50,7 +50,7 @@ export type EventName =
  *
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
-export class Aono<Level extends string> {
+export class Aono {
   private readonly emitter = new EventEmitter();
   // Function that resolve promises from calls to logger
   private readonly resolveCallbacks : (() => void)[] = [];
@@ -102,8 +102,8 @@ export class Aono<Level extends string> {
    *
    * @return new logger instance
    */
-  getLogger(name : string) : Logger<Level> {
-    return new Logger<Level>(name, this.onLogEntry, this.getTimestamp);
+  getLogger(name : string) : Logger {
+    return new Logger(name, this.onLogEntry, this.getTimestamp);
   }
 
   /**

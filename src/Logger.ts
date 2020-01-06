@@ -1,10 +1,11 @@
 
 import Entry from './Entry';
+import Level from './Level';
 
 /**
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
-export class Logger<Level extends string> {
+export class Logger {
   constructor(
     private readonly name : string,
     private readonly handle : (entry : Entry) => Promise<void>,
@@ -32,6 +33,41 @@ export class Logger<Level extends string> {
       message,
       meta,
     });
+  }
+
+  /**
+   * Logs message with 'trace' level.
+   */
+  trace(message : string, meta : Object = {}) : Promise<void> {
+    return this.log('trace', message, meta);
+  }
+
+  /**
+   * Logs message with 'debug' level.
+   */
+  debug(message : string, meta : Object = {}) : Promise<void> {
+    return this.log('debug', message, meta);
+  }
+
+  /**
+   * Logs message with 'info' level.
+   */
+  info(message : string, meta : Object = {}) : Promise<void> {
+    return this.log('info', message, meta);
+  }
+
+  /**
+   * Logs message with 'warn' level.
+   */
+  warn(message : string, meta : Object = {}) : Promise<void> {
+    return this.log('warn', message, meta);
+  }
+
+  /**
+   * Logs message with 'error' level.
+   */
+  error(message : string, meta : Object = {}) : Promise<void> {
+    return this.log('error', message, meta);
   }
 }
 

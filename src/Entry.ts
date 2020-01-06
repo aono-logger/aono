@@ -1,4 +1,6 @@
 
+import Level from './Level';
+
 /**
  * A log entry.
  *
@@ -16,7 +18,7 @@ export interface Entry {
   /**
    * Log level.
    */
-  level : string;
+  level : Level;
   /**
    * Log message.
    */
@@ -25,7 +27,7 @@ export interface Entry {
    * Arbitrary object containing any additional information.
    * Can also be an instance of Error.
    */
-  meta : any;
+  meta : Object;
 }
 
 export default Entry;
