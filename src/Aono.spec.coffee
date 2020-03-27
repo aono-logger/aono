@@ -30,6 +30,7 @@ describe "Aono", ->
     testedFactory.on "sync", mocks.syncListener
     logger = testedFactory.getLogger "test"
   afterEach ->
+    testedFactory.release()
     mocks.timeProvider.resetHistory()
     mocks.timeProvider.resetBehavior()
     mocks.handler0.write.reset()

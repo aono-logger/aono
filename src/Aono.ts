@@ -37,6 +37,8 @@ export type EventName =
    */
   | 'error';
 
+const DAILY_MILLIS = 24 * 60 * 60 * 1000;
+
 /**
  * Main class of Aono logger library.
  *
@@ -56,6 +58,11 @@ export class Aono {
   private readonly resolveCallbacks : (() => void)[] = [];
 
   private readonly streams : { [_ : string] : LogStream } = {};
+
+  // A timer that prevents graceful program exit while logs are still in the queue.
+  // `global.setTimeout(effectiveluInfinite)` is called when first log is being passed
+  // to handlers. `global.clearTimeout` is called after all handlers are synced.
+  private keepAliveTimer : NodeJS.Timer | null = null;
 
   constructor(
     private getTimestamp : () => number,
@@ -162,12 +169,25 @@ export class Aono {
     ;
   }
 
+  release() {
+    if (this.keepAliveTimer === null) {
+      return;
+    }
+    global.clearInterval(this.keepAliveTimer);
+    this.keepAliveTimer = null;
+  }
+
   private onLogEntry(entry : Entry) : Promise<void> {
     if (Object.keys(this.streams).length === 0) {
       throw new Error('handler is not set');
     }
+    if (this.keepAliveTimer === null) {
+      this.keepAliveTimer = global.setInterval(logDay, DAILY_MILLIS);
+    }
+
     const promises = Object.keys(this.streams)
       .map(name => this.writeToStream(name, entry));
+
     if (hasOnlySameTickPromises(promises)) {
       // using Promise.all(...) prevents it from being same tick
       return new SameTickPromise();
@@ -202,6 +222,9 @@ export class Aono {
 
     if (stream.isSynced()) {
       this.emitter.emit('sync', name);
+    }
+    if (this.isSynced()) {
+      this.release();
     }
   }
   private onWriteError(name : string, error : any) {
@@ -255,5 +278,9 @@ function hasOnlySameTickPromises(promises : Promise<unknown>[]) {
     }
   }
   return true;
+}
+
+function logDay() {
+  console.warn('Instance of Aono remained unsynced for over 24 hours!');
 }
 
