@@ -207,7 +207,7 @@ export class Aono {
       this.emitter.emit('pressure', name, stream.writeId, stream.length);
     }
     return isAtWatermark
-      ? new Promise(this.addResolveCallback)
+      ? new Promise<void>(this.addResolveCallback)
       : new SameTickPromise()
     ;
   }
