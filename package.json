@@ -28,7 +28,7 @@
     "typescript"
   ],
   "author": "Maciej Chałapuk <maciej@chalapuk.pl>",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/aono-logger/aono/issues"
   },
