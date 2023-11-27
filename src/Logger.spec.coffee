@@ -18,7 +18,7 @@ describe "Logger", ->
   handlePromise = null
 
   beforeEach ->
-    testedLogger = new Logger logger0, mocks.handle, mocks.timeProvider
+    testedLogger = new Logger logger0, null, mocks.handle, mocks.timeProvider
     handlePromise = new FakePromise
     mocks.handle.returns handlePromise
 

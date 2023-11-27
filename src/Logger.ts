@@ -2,12 +2,18 @@
 import Entry from './Entry';
 import Level from './Level';
 
+export interface LoggerParams {
+  name : string;
+  meta : object;
+}
+
 /**
  * @author Maciej Chałapuk (maciej@chalapuk.pl)
  */
 export class Logger {
   constructor(
     private readonly name : string,
+    private readonly meta : object,
     private readonly handle : (entry : Entry) => Promise<void>,
     private readonly getTimestamp : () => number,
   ) {
@@ -31,7 +37,7 @@ export class Logger {
       logger: this.name,
       level,
       message,
-      meta,
+      meta: { ...this.meta, ...meta },
     });
   }
 

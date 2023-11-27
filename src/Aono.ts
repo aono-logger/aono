@@ -1,7 +1,7 @@
 
 import { EventEmitter } from 'events';
 
-import Logger from './Logger';
+import Logger, { type LoggerParams } from './Logger';
 import Handler from './Handler';
 import Entry from './Entry';
 import LogStream from './LogStream';
@@ -107,10 +107,27 @@ export class Aono {
    * Creates and returns a new instance of `Logger` connected
    * with this Aono object and its handlers.
    *
+   * @param name name of logger to be created
    * @return new logger instance
    */
-  getLogger(name : string) : Logger {
-    return new Logger(name, this.onLogEntry, this.getTimestamp);
+  getLogger(name : string) : Logger;
+
+  /**
+   * Creates and returns a new instance of `Logger` connected
+   * with this Aono object and its handlers.
+   *
+   * @param params name and context of logger to be created
+   * @return new logger instance
+   */
+  getLogger(param : LoggerParams) : Logger;
+
+  getLogger(params : string | LoggerParams) : Logger {
+    if (typeof params === "string") {
+      return new Logger(params, {}, this.onLogEntry, this.getTimestamp);
+    } else {
+      const { name, meta } = params
+      return new Logger(name, meta, this.onLogEntry, this.getTimestamp);
+    }
   }
 
   /**
