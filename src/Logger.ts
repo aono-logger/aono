@@ -4,7 +4,7 @@ import Level from './Level';
 
 export interface LoggerParams {
   name : string;
-  data : object;
+  data : object | ((data: object) => object);
 }
 
 /**
@@ -24,7 +24,8 @@ export class Logger {
    * @param params new name and data for the logger
    */
   child({ name, data }: LoggerParams) : Logger {
-    return new Logger(`${this.name} > ${name}`, { ...this.data, ...data }, this.handle)
+    const initData = typeof data === "function"? data: (orig: object) => ({ ...orig, ...data })
+    return new Logger(`${this.name} > ${name}`, initData(this.data), this.handle)
   }
 
   /**
