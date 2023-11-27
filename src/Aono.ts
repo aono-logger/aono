@@ -123,10 +123,10 @@ export class Aono {
 
   getLogger(params : string | LoggerParams) : Logger {
     if (typeof params === "string") {
-      return new Logger(params, {}, this.onLogEntry, this.getTimestamp);
+      return new Logger(params, {}, this.onLogEntry);
     } else {
       const { name, data } = params
-      return new Logger(name, data, this.onLogEntry, this.getTimestamp);
+      return new Logger(name, data, this.onLogEntry);
     }
   }
 
@@ -194,7 +194,7 @@ export class Aono {
     this.keepAliveTimer = null;
   }
 
-  private onLogEntry(entry : Entry) : Promise<void> {
+  private onLogEntry(entry : Omit<Entry, "timestamp">) : Promise<void> {
     if (Object.keys(this.streams).length === 0) {
       throw new Error('handler is not set');
     }
@@ -203,7 +203,7 @@ export class Aono {
     }
 
     const promises = Object.keys(this.streams)
-      .map(name => this.writeToStream(name, entry));
+      .map(name => this.writeToStream(name, { ...entry, timestamp: this.getTimestamp() }));
 
     if (hasOnlySameTickPromises(promises)) {
       // using Promise.all(...) prevents it from being same tick

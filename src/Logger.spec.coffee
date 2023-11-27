@@ -27,20 +27,15 @@ describe "Logger", ->
     mocks.timeProvider.resetHistory()
 
   describe "when after logging without data", ->
-    timestamp0 = 123456
     level0 = "level0"
     message0 = "message0"
 
     logPromise = null
 
     beforeEach ->
-      mocks.timeProvider.returns timestamp0
-
       logPromise = testedLogger.log level0, message0
       log = (mocks.handle.getCall 0).args[0]
 
-    it "emits log with proper timestamp", ->
-      log.timestamp.should.equal timestamp0
     it "emits log with proper logger name", ->
       log.logger.should.equal logger0
     it "emits log with proper level", ->
@@ -59,19 +54,14 @@ describe "Logger", ->
         logPromise
 
   describe "when after logging with data", ->
-    timestamp1 = 789101112
     level1 = "level1"
     message1 = "message1"
     data0 = prop0: "value0"
 
     beforeEach ->
-      mocks.timeProvider.returns timestamp1
-
       testedLogger.log level1, message1, data0
       log = (mocks.handle.getCall 0).args[0]
 
-    it "emits log with proper timestamp", ->
-      log.timestamp.should.equal timestamp1
     it "emits log with proper logger name", ->
       log.logger.should.equal logger0
     it "emits log with proper level", ->

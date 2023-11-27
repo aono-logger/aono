@@ -14,8 +14,7 @@ export class Logger {
   constructor(
     private readonly name : string,
     private readonly data : object,
-    private readonly handle : (entry : Entry) => Promise<void>,
-    private readonly getTimestamp : () => number,
+    private readonly handle : (entry : Omit<Entry, "timestamp">) => Promise<void>,
   ) {
   }
 
@@ -33,7 +32,6 @@ export class Logger {
    */
   log(level : Level, message : string, data : Object = {}) : Promise<void> {
     return this.handle({
-      timestamp: this.getTimestamp(),
       logger: this.name,
       level,
       message,
