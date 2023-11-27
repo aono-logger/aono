@@ -26,7 +26,7 @@ describe "Logger", ->
     mocks.handle.resetHistory()
     mocks.timeProvider.resetHistory()
 
-  describe "when after logging without meta", ->
+  describe "when after logging without data", ->
     timestamp0 = 123456
     level0 = "level0"
     message0 = "message0"
@@ -47,8 +47,8 @@ describe "Logger", ->
       log.level.should.equal level0
     it "emits log with proper message", ->
       log.message.should.equal message0
-    it "emits log with empty meta", ->
-      log.meta.should.eql {}
+    it "emits log with empty data", ->
+      log.data.should.eql {}
 
     describe "after resolving handlePromise", ->
       beforeEach ->
@@ -58,16 +58,16 @@ describe "Logger", ->
       it "resolves logPromise", ->
         logPromise
 
-  describe "when after logging with meta", ->
+  describe "when after logging with data", ->
     timestamp1 = 789101112
     level1 = "level1"
     message1 = "message1"
-    meta0 = prop0: "value0"
+    data0 = prop0: "value0"
 
     beforeEach ->
       mocks.timeProvider.returns timestamp1
 
-      testedLogger.log level1, message1, meta0
+      testedLogger.log level1, message1, data0
       log = (mocks.handle.getCall 0).args[0]
 
     it "emits log with proper timestamp", ->
@@ -78,6 +78,6 @@ describe "Logger", ->
       log.level.should.equal level1
     it "emits log with proper message", ->
       log.message.should.equal message1
-    it "emits log with proper meta", ->
-      log.meta.should.eql meta0
+    it "emits log with proper data", ->
+      log.data.should.eql data0
 

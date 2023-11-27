@@ -4,7 +4,7 @@ import Level from './Level';
 
 export interface LoggerParams {
   name : string;
-  meta : object;
+  data : object;
 }
 
 /**
@@ -13,7 +13,7 @@ export interface LoggerParams {
 export class Logger {
   constructor(
     private readonly name : string,
-    private readonly meta : object,
+    private readonly data : object,
     private readonly handle : (entry : Entry) => Promise<void>,
     private readonly getTimestamp : () => number,
   ) {
@@ -28,52 +28,52 @@ export class Logger {
    *
    * @param level log level
    * @param message log message
-   * @param meta log data
+   * @param data log data
    * @return promise which will be resolved after back pressure is released
    */
-  log(level : Level, message : string, meta : Object = {}) : Promise<void> {
+  log(level : Level, message : string, data : Object = {}) : Promise<void> {
     return this.handle({
       timestamp: this.getTimestamp(),
       logger: this.name,
       level,
       message,
-      meta: { ...this.meta, ...meta },
+      data: { ...this.data, ...data },
     });
   }
 
   /**
    * Logs message with 'trace' level.
    */
-  trace(message : string, meta : Object = {}) : Promise<void> {
-    return this.log('trace', message, meta);
+  trace(message : string, data : Object = {}) : Promise<void> {
+    return this.log('trace', message, data);
   }
 
   /**
    * Logs message with 'debug' level.
    */
-  debug(message : string, meta : Object = {}) : Promise<void> {
-    return this.log('debug', message, meta);
+  debug(message : string, data : Object = {}) : Promise<void> {
+    return this.log('debug', message, data);
   }
 
   /**
    * Logs message with 'info' level.
    */
-  info(message : string, meta : Object = {}) : Promise<void> {
-    return this.log('info', message, meta);
+  info(message : string, data : Object = {}) : Promise<void> {
+    return this.log('info', message, data);
   }
 
   /**
    * Logs message with 'warn' level.
    */
-  warn(message : string, meta : Object = {}) : Promise<void> {
-    return this.log('warn', message, meta);
+  warn(message : string, data : Object = {}) : Promise<void> {
+    return this.log('warn', message, data);
   }
 
   /**
    * Logs message with 'error' level.
    */
-  error(message : string, meta : Object = {}) : Promise<void> {
-    return this.log('error', message, meta);
+  error(message : string, data : Object = {}) : Promise<void> {
+    return this.log('error', message, data);
   }
 }
 

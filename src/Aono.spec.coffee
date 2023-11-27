@@ -78,7 +78,7 @@ describe "Aono", ->
             logger: "test"
             level: "info"
             message: "first entry"
-            meta: {}
+            data: {}
           ]
 
       describe "and after second and third log entry", ->
@@ -135,13 +135,13 @@ describe "Aono", ->
                 logger: "test"
                 level: "debug"
                 message: "second entry"
-                meta: {}
+                data: {}
               }, {
                 timestamp: 111111
                 logger: "test"
                 level: "warn"
                 message: "entry"
-                meta: number: "three"
+                data: number: "three"
               }]
 
           describe "and after second write successfully ends", ->
@@ -234,7 +234,7 @@ describe "Aono", ->
                 logger: "test"
                 level: "debug"
                 message: "entry"
-                meta: number: "two"
+                data: number: "two"
               ]
 
       describe "and after first write fails", ->
@@ -283,10 +283,10 @@ describe "Aono", ->
                   logger: "test"
                   level: "info"
                   message: "first entry"
-                  meta: {}
+                  data: {}
                 ]
 
-    describe "when after log entry containing error as meta", ->
+    describe "when after log entry containing error as data", ->
       promise0 = null
       fakeError =
         name: "TestError"
@@ -309,7 +309,7 @@ describe "Aono", ->
             logger: "test"
             level: "error"
             message: "error"
-            meta:
+            data:
               stacktrace: [
                 "a"
                 "b"
@@ -331,7 +331,7 @@ describe "Aono", ->
         logger: "test"
         level: "info"
         message: "first entry"
-        meta: {}
+        data: {}
 
       beforeEach ->
         mocks.timeProvider.returns 12345
@@ -392,7 +392,7 @@ describe "Aono", ->
             logger: "test"
             level: "debug"
             message: "second entry"
-            meta: {}
+            data: {}
           beforeEach ->
             mocks.timeProvider.returns 98765
 
@@ -424,7 +424,7 @@ describe "Aono", ->
               logger: "test"
               level: "warn"
               message: "entry"
-              meta: number: "three"
+              data: number: "three"
 
             beforeEach ->
               mocks.pressureListener.resetHistory()

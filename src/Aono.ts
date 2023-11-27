@@ -125,8 +125,8 @@ export class Aono {
     if (typeof params === "string") {
       return new Logger(params, {}, this.onLogEntry, this.getTimestamp);
     } else {
-      const { name, meta } = params
-      return new Logger(name, meta, this.onLogEntry, this.getTimestamp);
+      const { name, data } = params
+      return new Logger(name, data, this.onLogEntry, this.getTimestamp);
     }
   }
 

@@ -27,7 +27,7 @@ export interface Entry {
    * Arbitrary object containing any additional information.
    * Can also be an instance of Error.
    */
-  meta : Object;
+  data : Object;
 }
 
 export default Entry;

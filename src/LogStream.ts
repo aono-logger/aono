@@ -131,14 +131,14 @@ export class LogStream {
 export default LogStream;
 
 function preprocess(entry : Entry) : Entry {
-  const preprocessed = { ...entry, meta: { ...entry.meta } };
+  const preprocessed = { ...entry, data: { ...entry.data } };
 
-  const { name, message, stack, ...meta } = entry.meta as any;
+  const { name, message, stack, ...data } = entry.data as any;
   if (name && message && stack) {
-    // An error was passed as meta param.
+    // An error was passed as data param.
     // It's better to convert it to a stacktrace.
-    preprocessed.meta = {
-      ...meta,
+    preprocessed.data = {
+      ...data,
       stacktrace: stack.split('\n'),
     };
   }
