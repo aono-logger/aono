@@ -19,6 +19,15 @@ export class Logger {
   }
 
   /**
+   * Creates a child logger with new name and data.
+   *
+   * @param params new name and data for the logger
+   */
+  child({ name, data }: LoggerParams) : Logger {
+    return new Logger(`${this.name} > ${name}`, { ...this.data, ...data }, this.handle)
+  }
+
+  /**
    * Logs given `message`.
    *
    * If aono is currently not backpressured and current call doesn't cause backpressure,
