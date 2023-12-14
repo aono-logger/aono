@@ -80,7 +80,7 @@ export class Logger {
   /**
    * Logs message with 'error' level.
    */
-  error(message : string, data : Object) : Promise<void>;
+  error(message : string, data ?: Object) : Promise<void>;
 
   /**
    * Logs an error
