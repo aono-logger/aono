@@ -80,8 +80,21 @@ export class Logger {
   /**
    * Logs message with 'error' level.
    */
-  error(message : string, data : Object = {}) : Promise<void> {
-    return this.log('error', message, data);
+  error(message : string, data : Object) : Promise<void>;
+
+  /**
+   * Logs an error
+   */
+  error(error : Error) : Promise<void>;
+
+  error(arg0 : string | Error, data : Object = {}) : Promise<void> {
+    if (typeof arg0 === "string") {
+      return this.log('error', arg0, data);
+    } else {
+      const message = arg0.message;
+      const stackTrace = (arg0.stack || "").split("\n");
+      return this.log('error', message, { stackTrace })
+    }
   }
 }
 
