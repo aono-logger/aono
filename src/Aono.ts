@@ -5,6 +5,7 @@ import Logger, { type LoggerParams } from './Logger';
 import Handler from './Handler';
 import Entry from './Entry';
 import LogStream from './LogStream';
+import Level from './Level';
 
 /**
  * Events emitted from instances `Aono`.
@@ -90,13 +91,14 @@ export class Aono {
    *
    * @param name unique identifier of added handler
    * @param handler handler that will be added to this instance of Aono
+   * @param minLevel minimum level at which the handler will be invoked
    */
-  addHandler(name : string, handler : Handler) : this {
+  addHandler(name : string, handler : Handler, minLevel: Level = 'trace') : this {
     if (name in this.streams) {
       throw new Error(`handler of name '${name}' already added`);
     }
     this.streams[name] = new LogStream(
-      handler,
+      minLevel === 'trace'? handler: new MinLevelHandlerWrapper(handler, minLevel),
       this.onWriteSuccess.bind(this, name),
       this.onWriteError.bind(this, name)
     );
@@ -285,6 +287,34 @@ class SameTickPromise implements Promise<void> {
       onfinally();
     }
     return Promise.resolve<any>(null);
+  }
+}
+
+const LEVEL_NUMBERS: Record<Level, number> = {
+  'trace': 0,
+  'debug': 1,
+  'info': 2,
+  'warn': 3,
+  'error': 4,
+}
+
+class MinLevelHandlerWrapper implements Handler {
+  constructor(
+    public handler: Handler,
+    public minLevel: Level,
+  ) {
+  }
+  get highWaterMark() {
+    return this.handler.highWaterMark
+  }
+  write(entries: Entry[]) {
+    const filtered = entries.filter(
+      ({level}) => LEVEL_NUMBERS[level] >= LEVEL_NUMBERS[this.minLevel],
+    )
+    if (filtered.length === 0) {
+      return new SameTickPromise()
+    }
+    return this.handler.write(filtered)
   }
 }
 
